@@ -1,0 +1,632 @@
+body {
+  margin: 0;
+  background: #f6f7fb;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  color: #1c1c1c;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(17, 37, 87, 0.08);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.dates-inputs {
+  display: flex;
+  gap: 16px;
+}
+
+.dates-inputs label {
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dates-inputs input {
+  border: 1px solid #d7dce8;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.tab-nav {
+  margin: 20px 0;
+  display: flex;
+  gap: 12px;
+}
+
+.tab-nav button {
+  flex: 1;
+  border: none;
+  background: #e7ecff;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.tab-nav button.active {
+  background: #4a6cf7;
+  color: #fff;
+  font-weight: 600;
+}
+
+main {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(18, 38, 94, 0.08);
+}
+
+.stage-summary {
+  background: #f8fbff;
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.timeline {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+}
+
+.timeline div {
+  flex: 1;
+  border-radius: 16px;
+  padding: 12px;
+  text-align: center;
+}
+
+.calendar-section {
+  display: grid;
+  grid-template-columns: 3fr 1.5fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.calendar {
+  border: 1px solid #e3e7f3;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.calendar-header button {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.calendar-cell {
+  background: #f4f6fb;
+  border-radius: 14px;
+  border: none;
+  padding: 8px;
+  text-align: left;
+  min-height: 80px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendar-cell.current {
+  background: #fff;
+  border: 1px solid #d8def1;
+}
+
+.calendar-cell.today {
+  border: 2px solid #4a6cf7;
+}
+
+.calendar-cell.selected {
+  box-shadow: inset 0 0 0 2px #ff9ac9;
+}
+
+.calendar-badge {
+  display: inline-block;
+  background: #eef2ff;
+  color: #4a4d79;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+.day-panel {
+  border: 1px solid #e3e7f3;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.day-panel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-panel li {
+  background: #f6f8ff;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.day-panel .done {
+  text-decoration: line-through;
+  color: #9ea4c4;
+}
+
+.todo-form,
+.supplement-reminders,
+.partner-calendar {
+  margin-bottom: 24px;
+}
+
+.todo-entry {
+  display: flex;
+  gap: 10px;
+}
+
+.todo-entry input,
+.todo-entry button {
+  border-radius: 12px;
+  border: 1px solid #d7dce8;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.todo-entry button {
+  background: #4a6cf7;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.todo-list {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #5f638d;
+}
+
+.supplement-reminders ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.supplement-reminders li {
+  background: #f5f7ff;
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.partner-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.partner-cards article {
+  background: #fff3f8;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.partner-cards span {
+  font-size: 12px;
+  color: #d6639a;
+}
+
+.supplements-tab {
+  display: grid;
+  grid-template-columns: 200px 1fr 260px;
+  gap: 20px;
+}
+
+.nutrient-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nutrient-list button {
+  border: none;
+  border-radius: 14px;
+  padding: 12px;
+  text-align: left;
+  background: #f2f4ff;
+  cursor: pointer;
+}
+
+.nutrient-list button.active {
+  background: #4a6cf7;
+  color: #fff;
+}
+
+.nutrient-detail h2 {
+  margin-top: 0;
+}
+
+.nutrient-desc {
+  color: #555a7c;
+}
+
+.benefit-list {
+  display: flex;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.benefit-list li {
+  flex: 1;
+  background: #eef2ff;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.supplement-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.supplement-card {
+  flex: 1;
+  min-width: 200px;
+  background: #fff8f1;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.supplement-card button {
+  margin-top: 8px;
+  border: none;
+  background: #ff8ac2;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.custom-section form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-section input,
+.custom-section textarea {
+  border-radius: 12px;
+  border: 1px solid #d7dce8;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.custom-section button {
+  border: none;
+  background: #4a6cf7;
+  color: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.active-supplements ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.active-supplements li {
+  background: #f1f4ff;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.mypage section {
+  margin-bottom: 24px;
+  background: #f8f8ff;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.mypage label {
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mypage input {
+  border: 1px solid #d7dce8;
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.weight-status {
+  background: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 12px;
+}
+
+.chatbot {
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+}
+
+.chat-window {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background: #f5f6fb;
+  border-radius: 16px;
+}
+
+.chat-bubble {
+  max-width: 70%;
+  padding: 12px;
+  border-radius: 16px;
+  margin-bottom: 12px;
+}
+
+.chat-bubble.assistant {
+  background: #ffffff;
+  align-self: flex-start;
+}
+
+.chat-bubble.user {
+  background: #4a6cf7;
+  color: #fff;
+  align-self: flex-end;
+}
+
+.chat-bubble time {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.chat-input {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input input {
+  flex: 1;
+  border-radius: 12px;
+  border: 1px solid #d7dce8;
+  padding: 12px;
+}
+
+.chat-input button {
+  border: none;
+  border-radius: 12px;
+  background: #ff8ac2;
+  color: #fff;
+  padding: 12px 24px;
+  cursor: pointer;
+}
+
+.settings section {
+  margin-bottom: 20px;
+}
+
+.notification-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.notification-list span {
+  background: #f3f4ff;
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+.notification-list button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.add-notification {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+.add-notification input {
+  border-radius: 10px;
+  border: 1px solid #d7dce8;
+  padding: 10px;
+}
+
+.add-notification button {
+  border: none;
+  background: #4a6cf7;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+.danger-zone {
+  display: flex;
+  gap: 12px;
+}
+
+.danger-zone button {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.danger-zone .danger {
+  background: #ff5a7a;
+  color: #fff;
+}
+
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(120deg, #ffe2f5, #e1e8ff);
+  padding: 20px;
+}
+
+.auth-card {
+  width: min(440px, 90vw);
+  background: #fff;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+.auth-card h1 {
+  margin: 0;
+}
+
+.auth-tabs {
+  display: flex;
+  margin: 16px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #d7dce8;
+}
+
+.auth-tabs button {
+  flex: 1;
+  border: none;
+  padding: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.auth-tabs button.active {
+  background: #4a6cf7;
+  color: #fff;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-form input {
+  border-radius: 12px;
+  border: 1px solid #d7dce8;
+  padding: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.primary {
+  border: none;
+  background: #ff8ac2;
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.social-login {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.social-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.social-buttons button {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  background: #f4f6fb;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .calendar-section {
+    grid-template-columns: 1fr;
+  }
+
+  .supplements-tab {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-nav button {
+    font-size: 14px;
+  }
+
+  .dates-inputs {
+    flex-direction: column;
+  }
+}
