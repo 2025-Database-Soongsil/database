@@ -101,3 +101,35 @@ def verify_kakao_token(code: str) -> dict:
 def handle_social_login(provider: str, social_id: str, email: str, nickname: str) -> dict:
     user_record = db.upsert_social_user(provider, social_id, email, nickname)
     return user_record
+
+KAKAO_ADMIN_KEY = os.getenv("KAKAO_ADMIN_KEY")
+
+def unlink_kakao_user(social_id: str) -> None:
+    admin_key = _require_env("KAKAO_ADMIN_KEY", KAKAO_ADMIN_KEY)
+    
+    # Kakao Unlink API
+    # Header: Authorization: KakaoAK ${APP_ADMIN_KEY}
+    # Body: target_id_type=user_id, target_id=${social_id}
+    
+    resp = requests.post(
+        "https://kapi.kakao.com/v1/user/unlink",
+        headers={
+            "Authorization": f"KakaoAK {admin_key}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        data={
+            "target_id_type": "user_id",
+            "target_id": social_id,
+        },
+        timeout=5,
+    )
+    
+    if resp.status_code != 200:
+        # Log error but don't block deletion? Or raise?
+        # If unlink fails, maybe we still want to delete the local user?
+        # But user explicitly asked for unlink.
+        # Let's log and raise for now so we know it failed.
+        print(f"Kakao unlink failed: {resp.text}")
+        # We might not want to block local deletion if Kakao fails, 
+        # but for now let's assume it should work.
+

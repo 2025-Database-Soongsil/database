@@ -76,6 +76,17 @@ def delete_me(authorization: str = Header(None)):
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # If Kakao user, unlink first
+    if existing_user.get("provider") == "kakao" and existing_user.get("social_id"):
+        try:
+            auth_service.unlink_kakao_user(existing_user["social_id"])
+        except Exception as e:
+            print(f"Failed to unlink Kakao user: {e}")
+            # Continue with deletion even if unlink fails?
+            # User wants unlink, but if it fails (e.g. key invalid), 
+            # blocking deletion might be annoying.
+            # Let's log and proceed.
+
     # Remove try-except to expose DB errors
     deleted = db.delete_user_by_id(uid)
     

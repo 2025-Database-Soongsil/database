@@ -39,13 +39,13 @@ function App() {
   // Handlers
   const handleLogout = () => {
     logout()
+    resetData()
+    resetChat()
     setActiveTab('calendar')
   }
 
-  const handleDelete = () => {
-    deleteAccount()
-    resetData()
-    resetChat()
+  const handleDelete = async () => {
+    await deleteAccount()
   }
 
   if (!loggedIn) {

@@ -181,19 +181,21 @@ export function useAuth() {
                 const txt = await res.text()
                 throw new Error(txt || '회원 탈퇴 실패')
             }
-            // 성공 시 로그아웃 처리
-            logout()
-            setUser({ nickname: '준비맘', pregnant: false, email: '' })
-            setDates({ startDate: '', dueDate: '' })
-            alert('회원 탈퇴가 완료되었습니다.')
+            // 성공 시 로그아웃 처리는 UI에서 모달 확인 후 수행하도록 변경
+            // logout() 
+            // setUser(...) 
+            // setDates(...)
         } catch (err) {
             console.error(err)
-            alert('회원 탈퇴 중 오류가 발생했습니다: ' + err.message)
+            throw err
         }
     }
 
     const updateNickname = async (newNickname) => {
         if (!authToken) return
+        if (!newNickname || !newNickname.trim()) {
+            throw new Error('닉네임을 입력해주세요.')
+        }
         try {
             const res = await fetch(`${API_BASE}/auth/me`, {
                 method: 'PATCH',
@@ -214,10 +216,9 @@ export function useAuth() {
                 parsed.user.nickname = newNickname
                 localStorage.setItem('bp-auth', JSON.stringify(parsed))
             }
-            alert('닉네임이 저장되었습니다.')
         } catch (e) {
             console.error(e)
-            alert('닉네임 저장 실패')
+            throw e // Throw error to be caught by UI
         }
     }
 

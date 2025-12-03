@@ -52,7 +52,7 @@ const SettingsTab = ({
     } catch (e) {
       openModal({
         title: '저장 실패',
-        message: '닉네임 저장 중 오류가 발생했습니다.',
+        message: '닉네임을 입력해주세요',
         type: 'alert',
         onConfirm: closeModal
       })
@@ -67,8 +67,16 @@ const SettingsTab = ({
       confirmText: '예',
       cancelText: '아니오',
       onConfirm: () => {
-        onLogout()
-        closeModal()
+        // closeModal() // Switch to success modal
+        openModal({
+          title: '로그아웃 완료',
+          message: '로그아웃 되었습니다.',
+          type: 'alert',
+          onConfirm: () => {
+            closeModal()
+            onLogout()
+          }
+        })
       },
       onCancel: closeModal
     })
@@ -84,13 +92,16 @@ const SettingsTab = ({
       onConfirm: async () => {
         try {
           await onDelete()
-          closeModal()
-          // App.jsx handles the reset, but we might want to show a success message first?
-          // Since onDelete (handleDelete in App) calls deleteAccount which throws on error.
-          // If successful, App resets state and redirects to AuthScreen.
-          // So we might not see the success modal.
-          // But if we want to show it, we need to defer the reset.
-          // For now, let's assume App handles the redirect immediately.
+          // closeModal() // Don't close the confirm modal, just switch to success modal
+          openModal({
+            title: '탈퇴 완료',
+            message: '회원탈퇴가 완료되었습니다.',
+            type: 'alert',
+            onConfirm: () => {
+              closeModal()
+              onLogout() // Trigger logout and redirect to login screen
+            }
+          })
         } catch (e) {
           openModal({
             title: '탈퇴 실패',
