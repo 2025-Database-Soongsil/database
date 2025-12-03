@@ -86,9 +86,7 @@
   color: var(--bp-primary);
 }
 
-.day-cell.selected .dot {
-  /* 기존 색상 유지 */
-}
+
 
 /* 이벤트 점 스타일 */
 .day-dots {
