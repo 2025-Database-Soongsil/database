@@ -3,6 +3,7 @@ import random
 import time
 from contextlib import contextmanager
 from typing import Optional
+from datetime import date, datetime
 
 import psycopg2
 from psycopg2 import pool
@@ -135,6 +136,67 @@ def delete_user_by_id(user_id: str | int) -> bool:
         # 6. Delete User
         cur.execute('DELETE FROM "User" WHERE id = %s', (user_id,))
         return cur.rowcount > 0
+
+
+
+def create_user_email(email: str, password: str, nickname: str, pregnant: bool) -> dict:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO "User" (id, email, password, provider, nickname, is_pregnant, created_at, updated_at) '
+            "VALUES (%s, %s, %s, 'local', %s, %s, NOW(), NOW()) RETURNING *",
+            (_generate_id(), email, password, nickname, pregnant)
+        )
+        return cur.fetchone()
+
+
+def upsert_pregnancy_info(user_id: int, due_date: date = None, pregnancy_start: date = None) -> None:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        # Check if exists
+        cur.execute('SELECT user_id FROM "PregnancyInfo" WHERE user_id = %s', (user_id,))
+        if cur.fetchone():
+            cur.execute(
+                'UPDATE "PregnancyInfo" SET due_date = COALESCE(%s, due_date), pregnancy_start = COALESCE(%s, pregnancy_start), updated_at = NOW() WHERE user_id = %s',
+                (due_date, pregnancy_start, user_id)
+            )
+        else:
+            cur.execute(
+                'INSERT INTO "PregnancyInfo" (user_id, due_date, pregnancy_start, created_at, updated_at) VALUES (%s, %s, %s, NOW(), NOW())',
+                (user_id, due_date, pregnancy_start)
+            )
+
+
+def upsert_period_info(user_id: int, last_period: date = None, period_start: date = None) -> None:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT user_id FROM "PeriodInfo" WHERE user_id = %s', (user_id,))
+        if cur.fetchone():
+            cur.execute(
+                'UPDATE "PeriodInfo" SET last_period = COALESCE(%s, last_period), period_start = COALESCE(%s, period_start), updated_at = NOW() WHERE user_id = %s',
+                (last_period, period_start, user_id)
+            )
+        else:
+            cur.execute(
+                'INSERT INTO "PeriodInfo" (user_id, last_period, period_start, updated_at) VALUES (%s, %s, %s, NOW())',
+                (user_id, last_period, period_start)
+            )
+
+
+def upsert_user_profile(user_id: int, height: int = None, weight: float = None) -> None:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT user_id FROM "UserProfile" WHERE user_id = %s', (user_id,))
+        if cur.fetchone():
+            cur.execute(
+                'UPDATE "UserProfile" SET height = COALESCE(%s, height), weight = COALESCE(%s, weight), updated_at = NOW() WHERE user_id = %s',
+                (height, weight, user_id)
+            )
+        else:
+            cur.execute(
+                'INSERT INTO "UserProfile" (user_id, height, weight, updated_at) VALUES (%s, %s, %s, NOW())',
+                (user_id, height, weight)
+            )
 
 
 def update_user_nickname(user_id: int, nickname: str) -> bool:
@@ -426,3 +488,32 @@ def update_user_notification_toggle(user_id: int, enabled: bool) -> bool:
             (enabled, user_id)
         )
         return cur.rowcount > 0
+
+
+def add_custom_supplement(user_id: int, name: str, schedule: str = None, notes: str = None) -> dict:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO "CustomSupplement" (id, user_id, name, note) VALUES (%s, %s, %s, %s) RETURNING *',
+            (_generate_id(), user_id, name, f"Schedule: {schedule}\nNotes: {notes}")
+        )
+        return cur.fetchone()
+
+
+def add_user_supplement(user_id: int, supplement_id: int) -> dict:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        # Check if already added
+        cur.execute(
+            'SELECT * FROM "UserSupplement" WHERE user_id = %s AND supplement_id = %s',
+            (user_id, supplement_id)
+        )
+        existing = cur.fetchone()
+        if existing:
+            return existing
+            
+        cur.execute(
+            'INSERT INTO "UserSupplement" (id, user_id, supplement_id, start_date) VALUES (%s, %s, %s, NOW()) RETURNING *',
+            (_generate_id(), user_id, supplement_id)
+        )
+        return cur.fetchone()

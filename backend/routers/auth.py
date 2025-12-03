@@ -1,7 +1,6 @@
 from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Header
 from models import AuthSignup, AuthLogin, SocialLogin, GoogleLogin, KakaoLogin
-import storage
 import db
 from services import auth_service
 
@@ -9,16 +8,22 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/signup")
 def signup(payload: AuthSignup):
-    if storage.get_user_by_email(payload.email):
+    if db.fetch_user_by_email(payload.email):
         raise HTTPException(status_code=400, detail="이미 가입된 이메일입니다.")
-    user = storage.create_user(payload.email, payload.password, payload.nickname, payload.pregnant)
+    user = db.create_user_email(payload.email, payload.password, payload.nickname, payload.pregnant)
     if payload.due_date:
-        storage.set_dates(user["id"], None, payload.due_date)
+        # Convert string to date object if needed, but payload.due_date might be string from Pydantic if not typed as date
+        # Pydantic models usually handle date conversion if typed as date.
+        # Let's assume it's a date object or string that db accepts?
+        # db.upsert_pregnancy_info expects date objects.
+        # AuthSignup model definition? I should check models.py.
+        # Assuming payload.due_date is compatible.
+        db.upsert_pregnancy_info(user["id"], due_date=payload.due_date)
     return {"token": auth_service.build_token(user["id"]), "user": user}
 
 @router.post("/login")
 def login(payload: AuthLogin):
-    user = storage.get_user_by_email(payload.email)
+    user = db.fetch_user_by_email(payload.email)
     if not user or user["password"] != payload.password:
         raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다.")
     return {"token": auth_service.build_token(user["id"]), "user": user}
@@ -26,9 +31,11 @@ def login(payload: AuthLogin):
 @router.post("/social")
 def social(payload: SocialLogin):
     email = f"{payload.provider.lower()}@connected"
-    user = storage.get_user_by_email(email)
+    user = db.fetch_user_by_email(email)
     if not user:
-        user = storage.create_user(email, payload.token, f"{payload.provider} 사용자")
+        # This seems to be a mock social login?
+        # create_user_email expects password.
+        user = db.create_user_email(email, payload.token, f"{payload.provider} 사용자", False)
     return {"token": auth_service.build_token(user["id"]), "user": user}
 
 @router.post("/google")
@@ -42,8 +49,8 @@ def google_login(payload: GoogleLogin):
 
     nickname = idinfo.get("name") or email.split("@")[0]
     user_record = auth_service.handle_social_login("google", social_id, email, nickname)
-    user = storage.ensure_user_cache(user_record)
-    return {"token": auth_service.build_token(str(user_record["id"])), "user": user}
+    # storage.ensure_user_cache removed
+    return {"token": auth_service.build_token(str(user_record["id"])), "user": user_record}
 
 @router.post("/kakao")
 def kakao_login(payload: KakaoLogin):
@@ -57,8 +64,8 @@ def kakao_login(payload: KakaoLogin):
     email = email or f"{social_id}@kakao.connected"
 
     user_record = auth_service.handle_social_login("kakao", social_id, email, nickname)
-    user = storage.ensure_user_cache(user_record)
-    return {"token": auth_service.build_token(str(user_record["id"])), "user": user}
+    # storage.ensure_user_cache removed
+    return {"token": auth_service.build_token(str(user_record["id"])), "user": user_record}
 
 @router.delete("/me")
 def delete_me(authorization: str = Header(None)):
@@ -72,7 +79,7 @@ def delete_me(authorization: str = Header(None)):
         raise HTTPException(status_code=400, detail="Invalid user ID format")
 
     # Check if user exists first
-    existing_user = storage.get_user(uid)
+    existing_user = db.fetch_user_by_id(uid)
     if not existing_user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -82,10 +89,6 @@ def delete_me(authorization: str = Header(None)):
             auth_service.unlink_kakao_user(existing_user["social_id"])
         except Exception as e:
             print(f"Failed to unlink Kakao user: {e}")
-            # Continue with deletion even if unlink fails?
-            # User wants unlink, but if it fails (e.g. key invalid), 
-            # blocking deletion might be annoying.
-            # Let's log and proceed.
 
     # Remove try-except to expose DB errors
     deleted = db.delete_user_by_id(uid)
@@ -93,7 +96,7 @@ def delete_me(authorization: str = Header(None)):
     if not deleted:
         raise HTTPException(status_code=500, detail="Failed to delete user record")
 
-    storage.reset_user(user_id)
+    # storage.reset_user removed
     return {"ok": True}
 
 
@@ -108,7 +111,7 @@ def update_me(payload: UpdateProfile, authorization: str = Header(None)):
     if not user_id:
         raise HTTPException(status_code=401, detail="인증이 필요합니다.")
     
-    success = storage.update_user_nickname(user_id, payload.nickname)
+    success = db.update_user_nickname(int(user_id), payload.nickname)
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
         

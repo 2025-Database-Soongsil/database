@@ -1,7 +1,7 @@
 from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 from models import CalendarDayInfo
-import storage
+import db
 from services import calendar_service
 from typing import List
 
@@ -13,7 +13,7 @@ def get_monthly(
     month: int = Query(..., ge = 1, le = 12),
     user_id : int = Query(...)
 ):
-    user = storage.get_user_from_id(user_id)
+    user = db.fetch_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
 
@@ -24,7 +24,7 @@ from models import TodoCreate
 
 @router.post("/events")
 def add_event(payload: TodoCreate, user_id: int = Query(...)):
-    user = storage.get_user_from_id(user_id)
+    user = db.fetch_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=401, detail="인증이 필요합니다.")
     
@@ -38,7 +38,7 @@ def add_event(payload: TodoCreate, user_id: int = Query(...)):
 
 @router.delete("/events/{event_id}")
 def delete_event(event_id: int, user_id: int = Query(...)):
-    user = storage.get_user_from_id(user_id)
+    user = db.fetch_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=401, detail="인증이 필요합니다.")
         

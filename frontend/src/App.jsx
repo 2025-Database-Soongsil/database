@@ -1,36 +1,59 @@
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import './App.css'
+import { useAuth } from './hooks/useAuth'
+import { useChatbot } from './hooks/useChatbot'
+import { useCalendar } from './hooks/useCalendar'
+import { useSupplements } from './hooks/useSupplements'
+import { useNotifications } from './hooks/useNotifications'
+import { useProfile } from './hooks/useProfile'
+import { calculateStage } from './utils/helpers'
+import { nutrientCatalog } from './data/presets'
+
+// Components
 import AuthScreen from './components/AuthScreen'
 import CalendarTab from './components/CalendarTab'
 import SupplementsTab from './components/SupplementsTab'
 import MyPageTab from './components/MyPageTab'
 import ChatbotTab from './components/ChatbotTab'
 import SettingsTab from './components/SettingsTab'
-import { nutrientCatalog, partnerCalendarSamples } from './data/presets'
-import { calculateStage } from './utils/helpers'
-import { useAuth } from './hooks/useAuth'
-import { useData } from './hooks/useData'
-import { useChatbot } from './hooks/useChatbot'
 
 function App() {
-  // Custom Hooks
   const {
-    loggedIn, user, setUser, authToken, dates,
-    login, signup, logout, deleteAccount, socialLogin, updateNickname
+    user, setUser,
+    authToken,
+    loggedIn,
+    signup, login, socialLogin, logout, deleteAccount,
+    dates, updateNickname
   } = useAuth()
 
+  const [activeTab, setActiveTab] = useState('calendar')
+
+  // Hooks
   const {
-    activeTab, setActiveTab,
     calendarMonth, handleMonthChange,
     selectedDate, setSelectedDate,
-    supplements, todos, notifications, addNotification, removeNotification, notificationsEnabled, toggleNotifications,
-    height, setHeight, preWeight, setPreWeight, currentWeight, setCurrentWeight,
-    selectedNutrient, setSelectedNutrient,
-    handleAddTodo, handleToggleTodo,
-    handleAddSupplement, handleAddCustomSupplement,
-    resetData,
-    fetchNutrients
-  } = useData(authToken, user)
+    todos, handleAddTodo, handleToggleTodo,
+    resetCalendar
+  } = useCalendar(authToken, user)
+
+  const {
+    supplements, handleAddSupplement, handleAddCustomSupplement,
+    selectedNutrient, setSelectedNutrient, fetchNutrients,
+    resetSupplements
+  } = useSupplements(authToken, user)
+
+  const {
+    notifications, addNotification, removeNotification,
+    notificationsEnabled, toggleNotifications,
+    resetNotifications
+  } = useNotifications(authToken, user)
+
+  const {
+    height, setHeight,
+    preWeight, setPreWeight,
+    currentWeight, setCurrentWeight,
+    resetProfile
+  } = useProfile()
 
   const { chatMessages, sendMessage, resetChat, isLoading, markAsRead } = useChatbot(authToken)
 
@@ -40,7 +63,10 @@ function App() {
   // Handlers
   const handleLogout = () => {
     logout()
-    resetData()
+    resetCalendar()
+    resetSupplements()
+    resetNotifications()
+    resetProfile()
     resetChat()
     setActiveTab('calendar')
   }
@@ -100,7 +126,7 @@ function App() {
               onAddTodo={handleAddTodo}
               onToggleTodo={handleToggleTodo}
               supplements={supplements}
-              partnerCalendarSamples={partnerCalendarSamples}
+              partnerCalendarSamples={[]}
             />
           )}
 
