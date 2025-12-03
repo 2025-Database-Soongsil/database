@@ -49,7 +49,26 @@ function App() {
 
   const stage = useMemo(() => calculateStage(dates.startDate, dates.dueDate), [dates])
 
-  const handleAuthSubmit = (form) => {
+// ----------------------------------------------------
+// 1. handleLogin 함수 추가 (로그인 처리)
+// ----------------------------------------------------
+  const handleLogin = (form) => {
+    // 실제 로그인 처리 로직이 여기에 들어갑니다. (이메일/비번 확인 등)
+    console.log('로그인 시도:', form.email)
+
+    setUser((prev) => ({
+      ...prev,
+      email: form.email,
+      nickname: form.nickname || prev.nickname,
+    }))
+    
+    setLoggedIn(true) // 👈 로그인 상태를 true로 설정
+  }
+  
+// ----------------------------------------------------
+// 2. handleSignup 함수 정의 (기존 handleAuthSubmit)
+// ----------------------------------------------------
+  const handleSignup = (form) => {
     const nickname = form.nickname || user.nickname || '준비맘'
     setUser({
       nickname,
@@ -59,7 +78,7 @@ function App() {
     if (form.dueDate) {
       setDates((prev) => ({ ...prev, dueDate: form.dueDate }))
     }
-    setLoggedIn(true)
+    setLoggedIn(true) // 회원가입 후 로그인 처리
   }
 
   const handleSocialLogin = (provider) => {
@@ -70,7 +89,22 @@ function App() {
     })
     setLoggedIn(true)
   }
+  // App.jsx 파일 내, 상태 정의 (useState) 아래나 핸들러 함수들 사이에 추가
+// calendarMonth 상태를 업데이트하는 함수가 필요합니다.
 
+const handleChangeMonth = (delta) => {
+  setCalendarMonth((prev) => {
+    const newMonth = prev.month + delta
+    const newDate = new Date(prev.year, newMonth, 1)
+    return {
+      year: newDate.getFullYear(),
+      month: newDate.getMonth(),
+    }
+  })
+}
+
+// ⚠️ 참고: `CalendarTab` 컴포넌트를 사용하는 곳(App.jsx 렌더링 부분)에서도 
+// 이 함수를 `onChangeMonth` prop으로 올바르게 전달하는지 확인해야 합니다.
   const handleMonthChange = (offset) => {
     setCalendarMonth((prev) => {
       const date = new Date(prev.year, prev.month + offset, 1)
@@ -145,8 +179,18 @@ function App() {
     ])
   }
 
+// ----------------------------------------------------
+// 3. AuthScreen 렌더링 수정
+// ----------------------------------------------------
   if (!loggedIn) {
-    return <AuthScreen mode={authMode} onModeChange={setAuthMode} onSubmit={handleAuthSubmit} onSocialLogin={handleSocialLogin} />
+    return (
+      <AuthScreen 
+        mode={authMode} 
+        onModeChange={setAuthMode} 
+        onSubmit={authMode === 'login' ? handleLogin : handleSignup} // 👈 수정된 부분
+        onSocialLogin={handleSocialLogin} 
+      />
+    )
   }
 
   const tabs = [
@@ -159,47 +203,27 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div>
-          <h1>Baby Prep Dashboard</h1>
-          <p>
-            {user.nickname}님, {stage.label}
-          </p>
+      {/* 둥글고 예쁜 상단 네비게이션 */}
+      <nav className="main-nav-bar">
+        <div className="nav-title">Baby Prep 💖</div>
+        <div className="nav-tab-menu">
+          {['calendar', 'supplements', 'mypage', 'chatbot', 'settings'].map((tab) => (
+            <button
+              key={tab}
+              className={`nav-tab-item ${activeTab === tab ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab === 'calendar' && '캘린더'}
+              {tab === 'supplements' && '영양제'}
+              {tab === 'mypage' && '마이페이지'}
+              {tab === 'chatbot' && '챗봇'}
+              {tab === 'settings' && '설정'}
+            </button>
+          ))}
         </div>
-        <div className="dates-inputs">
-          <label>
-            임신 준비 시작일
-            <input
-              type="date"
-              value={dates.startDate}
-              onChange={(e) => setDates((prev) => ({ ...prev, startDate: e.target.value }))}
-            />
-          </label>
-          <label>
-            예정일
-            <input
-              type="date"
-              value={dates.dueDate}
-              onChange={(e) => setDates((prev) => ({ ...prev, dueDate: e.target.value }))}
-            />
-          </label>
-        </div>
-      </header>
-
-      <nav className="tab-nav">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={tab.id === activeTab ? 'active' : ''}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
       </nav>
 
-      <main>
+      <main className="app-content-area">
         {activeTab === 'calendar' && (
           <CalendarTab
             stage={stage}
@@ -209,7 +233,7 @@ function App() {
             startDate={dates.startDate}
             dueDate={dates.dueDate}
             onSelectDate={setSelectedDate}
-            onChangeMonth={handleMonthChange}
+            onChangeMonth={handleMonthChange} // 👈 이 부분도 함수 이름 통일
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
             supplements={supplements}
@@ -220,8 +244,8 @@ function App() {
         {activeTab === 'supplements' && (
           <SupplementsTab
             catalog={nutrientCatalog}
-            selectedNutrient={selectedNutrient}
-            onSelectNutrient={setSelectedNutrient}
+            selectedNutrient={stage.nutrient} // 기존 stage.nutrient 대신 임시로 '엽산' 등 기본값 필요
+            onSelectNutrient={() => { /* 기능 구현 필요 */}} 
             onAddSupplement={handleAddSupplement}
             onAddCustom={handleAddCustomSupplement}
             activeSupplements={supplements}
