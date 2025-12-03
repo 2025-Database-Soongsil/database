@@ -43,3 +43,56 @@
   .action-btn { width: 100%; padding: 14px; border-radius: 12px; font-weight: bold; margin-bottom: 10px; text-align: center; }
   .action-btn.logout { background: #f5f5f5; color: #666; }
   .action-btn.delete { background: #fff0f0; color: #ff4d4d; margin-bottom: 0; }
+  
+/* Modal Styles - Copied from App.css for co-location */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.login-overlay__content {
+  background: #fff;
+  padding: 24px 28px;
+  border-radius: 14px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  width: min(420px, 90vw);
+}
+
+.login-overlay__content h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  width: 100%;
+  text-align: center;
+}
+
+.login-overlay__content p {
+  margin: 0;
+  font-weight: 600;
+  color: #1f2a3d;
+  width: 100%;
+  text-align: center;
+}
+
+.confirm-modal {
+  flex-direction: column;
+  align-items: center;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
+}

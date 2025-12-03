@@ -1,0 +1,13 @@
+.venv
+backend/.env
+frontend/.env
+
+.idea/
+
+backend/__pycache__
+backend/routers/__pycache__
+backend/services/__pycache__
+frontend/__pycache__
+
+backend/venv
+frontend/node_modules

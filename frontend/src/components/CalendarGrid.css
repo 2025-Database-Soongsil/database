@@ -49,7 +49,6 @@
     color: var(--bp-text);
     position: relative;
     transition: all 0.1s;
-    min-height: 40px; /* 최소 높이 확보 */
 }
 
 .day-cell.other-month {
@@ -90,3 +89,25 @@
 .start-dot { background: #FFD700; } /* 준비 시작일 */
 .due-dot { background: #FF6B6B; } /* 예정일 */
 .todo-dot { background: var(--bp-primary); } /* 할 일 있음 */
+
+/* 아주 작은 화면을 위한 미디어 쿼리 */
+@media (max-width: 360px) {
+  .day-number {
+    font-size: 12px;
+  }
+  .weekday-header {
+    font-size: 11px;
+  }
+  .calendar-header-nav strong {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .calendar-wrapper {
+    padding: 0;
+  }
+  .calendar-grid-view {
+    gap: 1px;
+  }
+}

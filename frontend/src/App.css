@@ -1,20 +1,20 @@
-﻿/* App.css */
+/* App.css */
 
 :root {
-  /* Color Palette - ?묓겕? 遺?쒕윭????媛뺤“ */
-  --bp-bg: #ffffff;       /* ?꾩＜ ?고븳 ?묓겕 (諛곌꼍?? */
-  --bp-card: #FFFFFF;     /* 移대뱶/而⑦뀒?대꼫 諛곌꼍 (?곗깋) */
-  --bp-primary: #FF8FA3;  /* 硫붿씤 ?묓겕 (踰꾪듉, 媛뺤“) */
-  --bp-accent: #FF4D6D;   /* 吏꾪븳 ?묓겕 (?띿뒪??媛뺤“, ?쒖꽦 ?곹깭) */
-  --bp-text: #4A4A4A;     /* 媛?낆꽦???꾪븳 吏숈? ?뚯깋 */
-  --bp-gray: #E5E7EB;     /* 寃쎄퀎?? 鍮꾪솢???붿냼 */
+  /* Color Palette - 핑크와 부드러움을 강조 */
+  --bp-bg: #ffffff;       /* 아주 연한 핑크 (배경) */
+  --bp-card: #FFFFFF;     /* 카드/컨테이너 배경 (흰색) */
+  --bp-primary: #FF8FA3;  /* 메인 핑크 (버튼, 강조) */
+  --bp-accent: #FF4D6D;   /* 진한 핑크 (텍스트 강조, 활성 상태) */
+  --bp-text: #4A4A4A;     /* 가독성을 위한 짙은 회색 */
+  --bp-gray: #E5E7EB;     /* 경계선, 비활성 요소 */
 
-  /* Spacing & Radius - ?κ렐 ?먮굦 媛뺤“ */
+  /* Spacing & Radius - 둥근 모서리 강조 */
   --radius-xl: 30px;      
   --radius-lg: 20px;
   --radius-md: 12px;
   --radius-sm: 8px;
-  /* 遺?쒕윭??洹몃┝??*/
+  /* 부드러운 그림자 */
   --shadow-soft: 0 10px 30px rgba(255, 143, 163, 0.15);
 }
 
@@ -44,7 +44,7 @@ button {
   transition: all 0.2s;
 }
 
-/* 1. Main Layout & Navigation (App.jsx?먯꽌 ?ъ슜) */
+/* 1. Main Layout & Navigation (App.jsx에서 사용) */
 .app-shell {
   max-width: 700px;
   margin: 0 auto;
@@ -105,7 +105,7 @@ button {
   box-shadow: 0 4px 10px rgba(255, 143, 163, 0.3);
 }
 
-/* 2. Common Card Style (紐⑤뱺 ??뿉???ъ궗?⑺븷 怨듯넻 移대뱶 ?ㅽ??? */
+/* 2. Common Card Style (모든 탭에서 유사하게 쓸 공통 카드 스타일) */
 .ui-card {
   background: var(--bp-card);
   border-radius: var(--radius-lg);
@@ -737,6 +737,73 @@ main {
   cursor: pointer;
 }
 
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.login-overlay__content {
+  background: #fff;
+  padding: 24px 28px;
+  border-radius: 14px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  width: min(420px, 90vw);
+}
+
+.login-overlay__content h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  width: 100%;
+  text-align: center;
+}
+
+.login-overlay__content p {
+  margin: 0;
+  font-weight: 600;
+  color: #1f2a3d;
+  width: 100%;
+  text-align: center;
+}
+
+.confirm-modal {
+  flex-direction: column;
+  align-items: center;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid #d9e3f5;
+  border-top-color: #4b7bec;
+  animation: spin 0.8s linear infinite;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 900px) {
   .calendar-section {
     grid-template-columns: 1fr;
@@ -752,5 +819,19 @@ main {
 
   .dates-inputs {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 600px) {
+  .login-overlay__content {
+    width: 90%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .app-content-area, .main-nav-bar {
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }

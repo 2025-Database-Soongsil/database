@@ -1,66 +1,6 @@
-/*import { useState } from 'react'
-
-const SettingsTab = ({
-  notifications,
-  onNotificationsChange,
-  nickname,
-  onNicknameChange,
-  onLogout,
-  onDelete
-}) => {
-  const [newTime, setNewTime] = useState('')
-
-  const handleAdd = () => {
-    if (!newTime) return
-    onNotificationsChange([...notifications, newTime])
-    setNewTime('')
-  }
-
-  const handleRemove = (time) => {
-    onNotificationsChange(notifications.filter((item) => item !== time))
-  }
-
-  return (
-    <div className="settings">
-      <section>
-        <h2>알림 설정</h2>
-        <div className="notification-list">
-          {notifications.map((time) => (
-            <span key={time}>
-              {time}
-              <button type="button" onClick={() => handleRemove(time)}>
-                ✕
-              </button>
-            </span>
-          ))}
-        </div>
-        <div className="add-notification">
-          <input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
-          <button type="button" onClick={handleAdd}>
-            추가
-          </button>
-        </div>
-      </section>
-      <section>
-        <h2>닉네임 변경</h2>
-        <input value={nickname} onChange={(e) => onNicknameChange(e.target.value)} />
-      </section>
-      <section className="danger-zone">
-        <button type="button" onClick={onLogout}>
-          로그아웃
-        </button>
-        <button type="button" className="danger" onClick={onDelete}>
-          회원 탈퇴
-        </button>
-      </section>
-    </div>
-  )
-}
-
-export default SettingsTab
-*/
 // SettingsTab.jsx
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import './SettingsTab.css' // CSS 파일 임포트
 
 const SettingsTab = ({
@@ -72,6 +12,8 @@ const SettingsTab = ({
   onDelete
 }) => {
   const [newTime, setNewTime] = useState('')
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const handleAdd = () => {
     if (!newTime || notifications.includes(newTime)) return
@@ -83,8 +25,46 @@ const SettingsTab = ({
     onNotificationsChange(notifications.filter((item) => item !== time))
   }
 
+  const confirmModal =
+    showLogoutConfirm || showDeleteConfirm
+      ? createPortal(
+          <div className="login-overlay">
+            <div className="login-overlay__content confirm-modal">
+              <h3>{showLogoutConfirm ? '로그아웃' : '회원 탈퇴'}</h3>
+              <p>{showLogoutConfirm ? '정말 로그아웃 하시겠어요?' : '정말 탈퇴하시겠어요? 모든 데이터가 초기화됩니다.'}</p>
+              <div className="confirm-actions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (showLogoutConfirm) onLogout()
+                    if (showDeleteConfirm) onDelete()
+                    setShowLogoutConfirm(false)
+                    setShowDeleteConfirm(false)
+                  }}
+                  className="action-btn danger-btn"
+                >
+                  예
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLogoutConfirm(false)
+                    setShowDeleteConfirm(false)
+                  }}
+                  className="action-btn primary-btn-outline"
+                >
+                  아니오
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null
+
   return (
     <div className="settings-container">
+      {confirmModal}
       <h2 className="page-title">설정 ⚙️</h2>
       
       {/* 1. 알림 설정 그룹 */}
@@ -120,10 +100,10 @@ const SettingsTab = ({
       {/* 3. 계정 작업 (Danger Zone) */}
       <section className="settings-group danger-zone">
         <h3>⚠️ 계정 작업</h3>
-        <button type="button" onClick={onLogout} className="action-btn primary-btn-outline">
+        <button type="button" onClick={() => setShowLogoutConfirm(true)} className="action-btn primary-btn-outline">
           로그아웃
         </button>
-        <button type="button" className="action-btn danger-btn" onClick={onDelete}>
+        <button type="button" className="action-btn danger-btn" onClick={() => setShowDeleteConfirm(true)}>
           회원 탈퇴
         </button>
       </section>

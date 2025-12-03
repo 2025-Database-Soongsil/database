@@ -63,10 +63,27 @@ function App() {
   const googleBusy = useRef(false)
   const googleCodeClient = useRef(null)
   const googleLoginPending = useRef(false)
-  const googleFocusListener = useRef(null)
   const kakaoHandled = useRef(false)
 
   const stage = useMemo(() => calculateStage(dates.startDate, dates.dueDate), [dates])
+
+  // 새로고침 시 로그인 상태 복구
+  useEffect(() => {
+    const savedAuth = localStorage.getItem('bp-auth')
+    if (!savedAuth) return
+    try {
+      const parsed = JSON.parse(savedAuth)
+      if (parsed?.token) {
+        setAuthToken(parsed.token)
+        setUser(parsed.user || user)
+        setDates(parsed.dates || { startDate: '', dueDate: '' })
+        setLoggedIn(true)
+      }
+    } catch (e) {
+      console.warn('Failed to parse saved auth', e)
+      localStorage.removeItem('bp-auth')
+    }
+  }, [])
 
   const handleLogin = async (form) => {
     try {
@@ -90,6 +107,14 @@ function App() {
       setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
       setAuthToken(data.token)
       setLoggedIn(true)
+      localStorage.setItem(
+        'bp-auth',
+        JSON.stringify({
+          token: data.token,
+          user: { nickname, pregnant: Boolean(data.user?.pregnant), email: data.user?.email ?? '' },
+          dates: datesFromUser,
+        })
+      )
     } catch (err) {
       alert(err.message)
     }
@@ -123,6 +148,14 @@ function App() {
       setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
       setAuthToken(data.token)
       setLoggedIn(true)
+      localStorage.setItem(
+        'bp-auth',
+        JSON.stringify({
+          token: data.token,
+          user: { nickname, pregnant: Boolean(data.user?.pregnant), email: data.user?.email ?? '' },
+          dates: datesFromUser,
+        })
+      )
     } catch (err) {
       alert(err.message)
     }
@@ -242,6 +275,14 @@ function App() {
         const datesFromUser = data.user?.dates || {}
         setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
         setLoggedIn(true)
+        localStorage.setItem(
+          'bp-auth',
+          JSON.stringify({
+            token: data.token,
+            user: { nickname, pregnant: Boolean(data.user?.pregnant), email: data.user?.email ?? '' },
+            dates: datesFromUser,
+          })
+        )
       } catch (err) {
         alert(err.message)
       } finally {
@@ -354,6 +395,7 @@ function App() {
     setActiveTab('calendar')
     googleBusy.current = false
     googleLoginPending.current = false
+    localStorage.removeItem('bp-auth')
   }
 
   const handleDelete = () => {
@@ -376,6 +418,7 @@ function App() {
     ])
     googleBusy.current = false
     googleLoginPending.current = false
+    localStorage.removeItem('bp-auth')
   }
 
   if (!loggedIn) {
@@ -396,86 +439,87 @@ function App() {
     { id: 'chatbot', label: '챗봇' },
     { id: 'settings', label: '설정' },
   ]
-
   return (
-    <div className="app-shell">
-      <nav className="main-nav-bar">
-        <div className="nav-title">Baby Prep 대시보드</div>
-        <div className="nav-tab-menu">
-          {['calendar', 'supplements', 'mypage', 'chatbot', 'settings'].map((tab) => (
-            <button
-              key={tab}
-              className={`nav-tab-item ${activeTab === tab ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab === 'calendar' && '캘린더'}
-              {tab === 'supplements' && '영양제'}
-              {tab === 'mypage' && '마이페이지'}
-              {tab === 'chatbot' && '챗봇'}
-              {tab === 'settings' && '설정'}
-            </button>
-          ))}
-        </div>
-      </nav>
+    <>
+      <div className="app-shell">
+        <nav className="main-nav-bar">
+          <div className="nav-title">Baby Prep 대시보드</div>
+          <div className="nav-tab-menu">
+            {['calendar', 'supplements', 'mypage', 'chatbot', 'settings'].map((tab) => (
+              <button
+                key={tab}
+                className={`nav-tab-item ${activeTab === tab ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab === 'calendar' && '캘린더'}
+                {tab === 'supplements' && '영양제'}
+                {tab === 'mypage' && '마이페이지'}
+                {tab === 'chatbot' && '챗봇'}
+                {tab === 'settings' && '설정'}
+              </button>
+            ))}
+          </div>
+        </nav>
 
-      <main className="app-content-area">
-        {activeTab === 'calendar' && (
-          <CalendarTab
-            stage={stage}
-            calendarMonth={calendarMonth}
-            selectedDate={selectedDate}
-            todos={todos}
-            startDate={dates.startDate}
-            dueDate={dates.dueDate}
-            onSelectDate={setSelectedDate}
-            onChangeMonth={handleMonthChange}
-            onAddTodo={handleAddTodo}
-            onToggleTodo={handleToggleTodo}
-            supplements={supplements}
-            partnerCalendarSamples={partnerCalendarSamples}
-          />
-        )}
+        <main className="app-content-area">
+          {activeTab === 'calendar' && (
+            <CalendarTab
+              stage={stage}
+              calendarMonth={calendarMonth}
+              selectedDate={selectedDate}
+              todos={todos}
+              startDate={dates.startDate}
+              dueDate={dates.dueDate}
+              onSelectDate={setSelectedDate}
+              onChangeMonth={handleMonthChange}
+              onAddTodo={handleAddTodo}
+              onToggleTodo={handleToggleTodo}
+              supplements={supplements}
+              partnerCalendarSamples={partnerCalendarSamples}
+            />
+          )}
 
-        {activeTab === 'supplements' && (
-          <SupplementsTab
-            catalog={nutrientCatalog}
-            selectedNutrient={selectedNutrient}
-            onSelectNutrient={setSelectedNutrient}
-            onAddSupplement={handleAddSupplement}
-            onAddCustom={handleAddCustomSupplement}
-            activeSupplements={supplements}
-          />
-        )}
+          {activeTab === 'supplements' && (
+            <SupplementsTab
+              catalog={nutrientCatalog}
+              selectedNutrient={selectedNutrient}
+              onSelectNutrient={setSelectedNutrient}
+              onAddSupplement={handleAddSupplement}
+              onAddCustom={handleAddCustomSupplement}
+              activeSupplements={supplements}
+            />
+          )}
 
-        {activeTab === 'mypage' && (
-          <MyPageTab
-            nickname={user.nickname}
-            onNicknameChange={(value) => setUser((prev) => ({ ...prev, nickname: value }))}
-            height={height}
-            preWeight={preWeight}
-            currentWeight={currentWeight}
-            onProfileChange={(field, value) => {
-              if (field === 'height') setHeight(value)
-              if (field === 'pre') setPreWeight(value)
-              if (field === 'current') setCurrentWeight(value)
-            }}
-          />
-        )}
+          {activeTab === 'mypage' && (
+            <MyPageTab
+              nickname={user.nickname}
+              onNicknameChange={(value) => setUser((prev) => ({ ...prev, nickname: value }))}
+              height={height}
+              preWeight={preWeight}
+              currentWeight={currentWeight}
+              onProfileChange={(field, value) => {
+                if (field === 'height') setHeight(value)
+                if (field === 'pre') setPreWeight(value)
+                if (field === 'current') setCurrentWeight(value)
+              }}
+            />
+          )}
 
-        {activeTab === 'chatbot' && <ChatbotTab messages={chatMessages} onSend={handleChatSend} />}
+          {activeTab === 'chatbot' && <ChatbotTab messages={chatMessages} onSend={handleChatSend} />}
 
-        {activeTab === 'settings' && (
-          <SettingsTab
-            notifications={notifications}
-            onNotificationsChange={setNotifications}
-            nickname={user.nickname}
-            onNicknameChange={(value) => setUser((prev) => ({ ...prev, nickname: value }))}
-            onLogout={handleLogout}
-            onDelete={handleDelete}
-          />
-        )}
-      </main>
-    </div>
+          {activeTab === 'settings' && (
+            <SettingsTab
+              notifications={notifications}
+              onNotificationsChange={setNotifications}
+              nickname={user.nickname}
+              onNicknameChange={(value) => setUser((prev) => ({ ...prev, nickname: value }))}
+              onLogout={handleLogout}
+              onDelete={handleDelete}
+            />
+          )}
+        </main>
+      </div>
+    </>
   )
 }
 
