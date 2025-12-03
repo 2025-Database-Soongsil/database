@@ -119,14 +119,20 @@ def delete_user_by_id(user_id: str | int) -> bool:
         # 2. Delete CalendarEvents
         cur.execute('DELETE FROM "CalendarEvent" WHERE user_id = %s', (user_id,))
         
-        # 3. Delete UserSupplements
+        # 3. Delete UserSupplements & CustomSupplements
         cur.execute('DELETE FROM "UserSupplement" WHERE user_id = %s', (user_id,))
+        cur.execute('DELETE FROM "CustomSupplement" WHERE user_id = %s', (user_id,))
         
-        # 4. Delete PregnancyInfo & PeriodInfo
+        # 4. Delete PregnancyInfo, PeriodInfo, UserProfile, UserSetting
         cur.execute('DELETE FROM "PregnancyInfo" WHERE user_id = %s', (user_id,))
         cur.execute('DELETE FROM "PeriodInfo" WHERE user_id = %s', (user_id,))
+        cur.execute('DELETE FROM "UserProfile" WHERE user_id = %s', (user_id,))
+        cur.execute('DELETE FROM "UserSetting" WHERE user_id = %s', (user_id,))
         
-        # 5. Delete User
+        # 5. Delete PartnerShare (both as user and partner)
+        cur.execute('DELETE FROM "PartnerShare" WHERE user_id = %s OR partner_id = %s', (user_id, user_id))
+        
+        # 6. Delete User
         cur.execute('DELETE FROM "User" WHERE id = %s', (user_id,))
         return cur.rowcount > 0
 
