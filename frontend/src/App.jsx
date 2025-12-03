@@ -11,7 +11,6 @@ import {
   partnerCalendarSamples,
   initialSupplements,
   initialTodos,
-  chatbotHints,
 } from './data/presets'
 import { calculateStage, formatDate, generateId } from './utils/helpers'
 
@@ -50,7 +49,7 @@ function App() {
   const [chatMessages, setChatMessages] = useState([
     {
       id: 'chat-01',
-      role: 'assistant',
+      role: 'bot',
       text: '임신 준비 관련 궁금한 점을 물어보세요.',
       time: '지금',
     },
@@ -61,6 +60,10 @@ function App() {
   const [selectedNutrient, setSelectedNutrient] = useState(nutrientCatalog[0].id)
   const googleScriptLoading = useRef(false)
   const googleReady = useRef(false)
+  const googleBusy = useRef(false)
+  const googleCodeClient = useRef(null)
+  const googleLoginPending = useRef(false)
+  const googleFocusListener = useRef(null)
   const kakaoHandled = useRef(false)
 
   const stage = useMemo(() => calculateStage(dates.startDate, dates.dueDate), [dates])
@@ -143,51 +146,63 @@ function App() {
 
   const handleSocialLogin = async (provider) => {
     if (provider === 'Google') {
+      if (googleBusy.current) {
+        alert('구글 로그인 진행 중입니다. 잠시만 기다려주세요.')
+        return
+      }
       try {
         const clientId = requireEnv(GOOGLE_CLIENT_ID, 'VITE_GOOGLE_CLIENT_ID')
         await loadGoogleScript()
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          ux_mode: 'popup',
-          callback: async (response) => {
-            console.log('[GoogleLogin] credential response', response)
-            if (!response.credential) {
-              console.error('[GoogleLogin] missing credential')
-              alert('Google 로그인 실패')
-              return
-            }
-            try {
-              const res = await fetch(`${API_BASE}/auth/google`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ credential: response.credential, is_code: false }),
-              })
-              console.log('[GoogleLogin] backend status', res.status)
-              if (!res.ok) {
-                const txt = await res.text()
-                console.error('[GoogleLogin] backend error body', txt)
-                throw new Error(txt || 'Google 로그인 실패')
+        if (!googleCodeClient.current) {
+          googleCodeClient.current = window.google.accounts.oauth2.initCodeClient({
+            client_id: clientId,
+            scope: 'email profile',
+            ux_mode: 'popup',
+            callback: async (response) => {
+              console.log('[GoogleLogin] auth code response', response)
+              if (!response.code) {
+                alert('Google 로그인 코드 발급에 실패했습니다.')
+                googleBusy.current = false
+                googleLoginPending.current = false
+                return
               }
-              const data = await res.json()
-              console.log('[GoogleLogin] success payload', data)
-              const nickname = data.user?.nickname || '준비맘'
-              setUser({
-                nickname,
-                pregnant: Boolean(data.user?.pregnant),
-                email: data.user?.email ?? '',
-              })
-              setAuthToken(data.token)
-              const datesFromUser = data.user?.dates || {}
-              setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
-              setLoggedIn(true)
-            } catch (err) {
-              alert(err.message)
-            }
-          },
-        })
-        window.google.accounts.id.prompt()
+              try {
+                const res = await fetch(`${API_BASE}/auth/google`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ credential: response.code, is_code: true }),
+                })
+                if (!res.ok) {
+                  const txt = await res.text()
+                  throw new Error(txt || 'Google 로그인 실패')
+                }
+                const data = await res.json()
+                const nickname = data.user?.nickname || '준비맘'
+                setUser({
+                  nickname,
+                  pregnant: Boolean(data.user?.pregnant),
+                  email: data.user?.email ?? '',
+                })
+                setAuthToken(data.token)
+                const datesFromUser = data.user?.dates || {}
+                setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
+                setLoggedIn(true)
+              } catch (err) {
+                alert(err.message)
+              } finally {
+                googleBusy.current = false
+                googleLoginPending.current = false
+              }
+            },
+          })
+        }
+        googleBusy.current = true
+        googleLoginPending.current = true
+        googleCodeClient.current.requestCode()
       } catch (err) {
         alert(err.message)
+        googleBusy.current = false
+        googleLoginPending.current = false
       }
     } else if (provider === 'Kakao') {
       const clientId = requireEnv(KAKAO_CLIENT_ID, 'VITE_KAKAO_CLIENT_ID')
@@ -234,6 +249,18 @@ function App() {
       }
     }
     exchange()
+  }, [])
+
+  useEffect(() => {
+    const onFocus = () => {
+      if (googleLoginPending.current) {
+        // 사용자가 팝업을 닫고 돌아온 경우 다시 시도할 수 있도록 상태 초기화
+        googleBusy.current = false
+        googleLoginPending.current = false
+      }
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [])
 
   const handleChangeMonth = (delta) => {
@@ -283,24 +310,50 @@ function App() {
     setSupplements((prev) => [...prev, supplement])
   }
 
-  const handleChatSend = (message) => {
+  const handleChatSend = async (message) => {
     const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
     const userMessage = { id: generateId(), role: 'user', text: message, time }
-    const matchedHint = chatbotHints.find((hint) => message.includes(hint.keyword))
-    const reply = matchedHint?.reply ?? '맞춤 답변을 준비 중입니다.'
-    const assistantMessage = {
-      id: `${generateId()}-assistant`,
-      role: 'assistant',
-      text: reply,
-      time: '방금',
+    setChatMessages((prev) => [...prev, userMessage])
+
+    try {
+      const res = await fetch(`${API_BASE}/chatbot/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ message }),
+      })
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(errText || '챗봇 요청에 실패했습니다.')
+      }
+      const data = await res.json()
+      const reply = data?.reply || '답변을 불러오지 못했어요. 잠시 후 다시 시도해주세요.'
+      const assistantMessage = {
+        id: `${generateId()}-assistant`,
+        role: 'bot',
+        text: reply,
+        time: '방금',
+      }
+      setChatMessages((prev) => [...prev, assistantMessage])
+    } catch (err) {
+      const assistantMessage = {
+        id: `${generateId()}-assistant`,
+        role: 'bot',
+        text: err.message || '채팅 중 오류가 발생했어요.',
+        time: '방금',
+      }
+      setChatMessages((prev) => [...prev, assistantMessage])
     }
-    setChatMessages((prev) => [...prev, userMessage, assistantMessage])
   }
 
   const handleLogout = () => {
     setLoggedIn(false)
     setAuthToken(null)
     setActiveTab('calendar')
+    googleBusy.current = false
+    googleLoginPending.current = false
   }
 
   const handleDelete = () => {
@@ -316,11 +369,13 @@ function App() {
     setChatMessages([
       {
         id: 'chat-reset',
-        role: 'assistant',
+        role: 'bot',
         text: '임신 준비 관련 궁금한 점을 물어보세요.',
         time: '지금',
       },
     ])
+    googleBusy.current = false
+    googleLoginPending.current = false
   }
 
   if (!loggedIn) {
