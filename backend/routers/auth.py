@@ -65,11 +65,23 @@ def delete_me(authorization: str = Header(None)):
     user_id = auth_service.parse_token(authorization)
     if not user_id:
         raise HTTPException(status_code=401, detail="인증이 필요합니다.")
-    # Best-effort DB delete
+    # Explicitly cast to int as IDs are integers
     try:
-        db.delete_user_by_id(user_id)
-    except Exception:
-        pass
+        uid = int(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid user ID format")
+
+    # Check if user exists first
+    existing_user = storage.get_user(uid)
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Remove try-except to expose DB errors
+    deleted = db.delete_user_by_id(uid)
+    
+    if not deleted:
+        raise HTTPException(status_code=500, detail="Failed to delete user record")
+
     storage.reset_user(user_id)
     return {"ok": True}
 

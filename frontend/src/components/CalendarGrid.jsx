@@ -100,7 +100,16 @@ const CalendarGrid = ({
               isSelected={isSelected}
               isToday={isToday}
               eventTypes={eventTypes}
-              onSelect={onSelectDate}
+              onSelect={(iso) => {
+                onSelectDate(iso)
+                if (!isCurrent) {
+                  if (date < firstDay) {
+                    onChangeMonth(-1)
+                  } else {
+                    onChangeMonth(1)
+                  }
+                }
+              }}
             />
           )
         })}

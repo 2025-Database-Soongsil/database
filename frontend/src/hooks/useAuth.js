@@ -164,10 +164,28 @@ export function useAuth() {
         localStorage.removeItem('bp-auth')
     }
 
-    const deleteAccount = () => {
-        logout()
-        setUser({ nickname: '준비맘', pregnant: false, email: '' })
-        setDates({ startDate: '', dueDate: '' })
+    const deleteAccount = async () => {
+        if (!authToken) return
+        try {
+            const res = await fetch(`${API_BASE}/auth/me`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            })
+            if (!res.ok) {
+                const txt = await res.text()
+                throw new Error(txt || '회원 탈퇴 실패')
+            }
+            // 성공 시 로그아웃 처리
+            logout()
+            setUser({ nickname: '준비맘', pregnant: false, email: '' })
+            setDates({ startDate: '', dueDate: '' })
+            alert('회원 탈퇴가 완료되었습니다.')
+        } catch (err) {
+            console.error(err)
+            alert('회원 탈퇴 중 오류가 발생했습니다: ' + err.message)
+        }
     }
 
     const loadGoogleScript = () =>

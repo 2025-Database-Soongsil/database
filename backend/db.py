@@ -110,7 +110,24 @@ def delete_user_by_id(user_id: str | int) -> bool:
     """
     with get_conn() as conn:
         cur = conn.cursor()
-        cur.execute('delete from "User" where id = %s', (user_id,))
+        # 1. Delete Notifications linked to user's calendar events
+        cur.execute('''
+            DELETE FROM "Notification" 
+            WHERE event_id IN (SELECT id FROM "CalendarEvent" WHERE user_id = %s)
+        ''', (user_id,))
+        
+        # 2. Delete CalendarEvents
+        cur.execute('DELETE FROM "CalendarEvent" WHERE user_id = %s', (user_id,))
+        
+        # 3. Delete UserSupplements
+        cur.execute('DELETE FROM "UserSupplement" WHERE user_id = %s', (user_id,))
+        
+        # 4. Delete PregnancyInfo & PeriodInfo
+        cur.execute('DELETE FROM "PregnancyInfo" WHERE user_id = %s', (user_id,))
+        cur.execute('DELETE FROM "PeriodInfo" WHERE user_id = %s', (user_id,))
+        
+        # 5. Delete User
+        cur.execute('DELETE FROM "User" WHERE id = %s', (user_id,))
         return cur.rowcount > 0
 
 
