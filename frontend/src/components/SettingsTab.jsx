@@ -38,7 +38,16 @@ const SettingsTab = ({
   }
 
   const handleAdd = () => {
-    if (!newTime || notifications.includes(newTime)) return
+    if (!newTime) return
+    if (notifications.includes(newTime)) {
+      openModal({
+        title: '알림 추가 실패',
+        message: '이미 등록된 시간입니다.',
+        type: 'alert',
+        onConfirm: closeModal
+      })
+      return
+    }
     onAddNotification(newTime)
     setNewTime('')
   }
