@@ -36,11 +36,14 @@ export function useAuth() {
         if (!savedAuth) return
         try {
             const parsed = JSON.parse(savedAuth)
-            if (parsed?.token) {
+            if (parsed?.token && parsed?.user?.id) {
                 setAuthToken(parsed.token)
-                setUser(parsed.user || user)
+                setUser(parsed.user)
                 setDates(parsed.dates || { startDate: '', dueDate: '' })
                 setLoggedIn(true)
+            } else {
+                // Invalid session (missing ID), force logout
+                localStorage.removeItem('bp-auth')
             }
         } catch (e) {
             console.warn('Failed to parse saved auth', e)
@@ -93,6 +96,7 @@ export function useAuth() {
     const handleAuthSuccess = (data) => {
         const nickname = data.user?.nickname || user.nickname || '준비맘'
         const userInfo = {
+            id: data.user?.id, // Store user ID
             nickname,
             pregnant: Boolean(data.user?.pregnant),
             email: data.user?.email ?? '',
@@ -188,6 +192,35 @@ export function useAuth() {
         }
     }
 
+    const updateNickname = async (newNickname) => {
+        if (!authToken) return
+        try {
+            const res = await fetch(`${API_BASE}/auth/me`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ nickname: newNickname })
+            })
+            if (!res.ok) throw new Error('Failed to update nickname')
+
+            setUser(prev => ({ ...prev, nickname: newNickname }))
+
+            // Update local storage
+            const saved = localStorage.getItem('bp-auth')
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                parsed.user.nickname = newNickname
+                localStorage.setItem('bp-auth', JSON.stringify(parsed))
+            }
+            alert('닉네임이 저장되었습니다.')
+        } catch (e) {
+            console.error(e)
+            alert('닉네임 저장 실패')
+        }
+    }
+
     const loadGoogleScript = () =>
         new Promise((resolve, reject) => {
             if (googleReady.current) return resolve()
@@ -275,6 +308,7 @@ export function useAuth() {
         signup,
         logout,
         deleteAccount,
-        socialLogin
+        socialLogin,
+        updateNickname
     }
 }

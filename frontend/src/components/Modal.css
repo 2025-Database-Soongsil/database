@@ -1,0 +1,72 @@
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 16px;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 24px 28px;
+    border-radius: 14px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    width: min(420px, 90vw);
+    text-align: center;
+}
+
+.modal-content h3 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    width: 100%;
+    color: var(--bp-text);
+}
+
+.modal-content p {
+    margin: 0;
+    font-weight: 600;
+    color: #1f2a3d;
+    width: 100%;
+    white-space: pre-wrap;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    width: 100%;
+    justify-content: center;
+}
+
+.action-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.primary-btn {
+    background: var(--bp-primary);
+    color: white;
+}
+
+.danger-btn {
+    background: #ff5a7a;
+    color: white;
+}
+
+.secondary-btn {
+    background: #f4f6fb;
+    color: var(--bp-text);
+}

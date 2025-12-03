@@ -16,7 +16,7 @@ function App() {
   // Custom Hooks
   const {
     loggedIn, user, setUser, authToken, dates,
-    login, signup, logout, deleteAccount, socialLogin
+    login, signup, logout, deleteAccount, socialLogin, updateNickname
   } = useAuth()
 
   const {
@@ -29,7 +29,7 @@ function App() {
     handleAddTodo, handleToggleTodo,
     handleAddSupplement, handleAddCustomSupplement,
     resetData
-  } = useData()
+  } = useData(authToken, user)
 
   const { chatMessages, sendMessage, resetChat } = useChatbot(authToken)
 
@@ -55,8 +55,8 @@ function App() {
         onModeChange={() => { }} // AuthScreen handles its own mode switching usually, or we can add state here if strictly needed
         onSubmit={(form) => {
           // Simple heuristic: if form has nickname, it's signup
-          if (form.nickname) signup(form)
-          else login(form)
+          if (form.nickname) return signup(form)
+          else return login(form)
         }}
         onSocialLogin={socialLogin}
       />
@@ -67,7 +67,7 @@ function App() {
     <>
       <div className="app-shell">
         <nav className="main-nav-bar">
-          <div className="nav-title">Baby Prep 대시보드</div>
+          <div className="nav-title">Baby Prep</div>
           <div className="nav-tab-menu">
             {['calendar', 'supplements', 'mypage', 'chatbot', 'settings'].map((tab) => (
               <button
@@ -136,7 +136,8 @@ function App() {
               notifications={notifications}
               onNotificationsChange={setNotifications}
               nickname={user.nickname}
-              onNicknameChange={(value) => setUser((prev) => ({ ...prev, nickname: value }))}
+              // onNicknameChange removed as we use onSaveNickname now
+              onSaveNickname={updateNickname}
               onLogout={handleLogout}
               onDelete={handleDelete}
             />

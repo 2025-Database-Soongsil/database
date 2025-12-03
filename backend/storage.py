@@ -173,6 +173,10 @@ def update_profile(user_id: str | int, payload: dict) -> None:
         )
 
 
+def update_user_nickname(user_id: str | int, nickname: str) -> bool:
+    return db.update_user_nickname(int(user_id), nickname)
+
+
 def set_notifications(user_id: str | int, notifications: List[str]) -> None:
     import json
     with db.get_conn() as conn:
@@ -270,3 +274,15 @@ def mark_notification_sent(notification_id: int) -> None:
 
 def get_calendar_event(event_id: int) -> Optional[dict]:
     return db.fetch_calendar_event(event_id)
+
+
+def get_calendar_events_in_range(user_id: int, start_date: date, end_date: date, type: Optional[str] = None) -> List[dict]:
+    return db.fetch_calendar_events_range(user_id, start_date, end_date, type)
+
+
+def upsert_calendar_event(user_id: int, title: str, start_datetime: datetime, type: str = "supplement", linked_supplement_id: Optional[int] = None) -> dict:
+    return db.upsert_calendar_event(user_id, title, start_datetime, linked_supplement_id, type)
+
+
+def delete_calendar_event(event_id: int, user_id: int) -> bool:
+    return db.delete_calendar_event(event_id, user_id)

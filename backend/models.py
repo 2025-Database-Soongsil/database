@@ -94,6 +94,7 @@ class SupplementInfo(BaseModel):
 class CalendarDayInfo(BaseModel):
     date: str
     supplements: List[SupplementInfo] = Field(default_factory=list)
+    todos: List[Todo] = Field(default_factory=list)
     pregnancyPhase: Optional[str] = None
     menstrualPhase: Optional[str] = None
 

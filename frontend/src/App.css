@@ -2,15 +2,21 @@
 
 :root {
   /* Color Palette - 핑크와 부드러움을 강조 */
-  --bp-bg: #ffffff;       /* 아주 연한 핑크 (배경) */
-  --bp-card: #FFFFFF;     /* 카드/컨테이너 배경 (흰색) */
-  --bp-primary: #FF8FA3;  /* 메인 핑크 (버튼, 강조) */
-  --bp-accent: #FF4D6D;   /* 진한 핑크 (텍스트 강조, 활성 상태) */
-  --bp-text: #4A4A4A;     /* 가독성을 위한 짙은 회색 */
-  --bp-gray: #E5E7EB;     /* 경계선, 비활성 요소 */
+  --bp-bg: #ffffff;
+  /* 아주 연한 핑크 (배경) */
+  --bp-card: #FFFFFF;
+  /* 카드/컨테이너 배경 (흰색) */
+  --bp-primary: #FF8FA3;
+  /* 메인 핑크 (버튼, 강조) */
+  --bp-accent: #FF4D6D;
+  /* 진한 핑크 (텍스트 강조, 활성 상태) */
+  --bp-text: #4A4A4A;
+  /* 가독성을 위한 짙은 회색 */
+  --bp-gray: #E5E7EB;
+  /* 경계선, 비활성 요소 */
 
   /* Spacing & Radius - 둥근 모서리 강조 */
-  --radius-xl: 30px;      
+  --radius-xl: 30px;
   --radius-lg: 20px;
   --radius-md: 12px;
   --radius-sm: 8px;
@@ -44,13 +50,51 @@ button {
   transition: all 0.2s;
 }
 
+/* Global Button Styles */
+.primary-btn {
+  background: var(--bp-primary);
+  color: white;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-weight: 600;
+}
+
+.primary-btn:hover {
+  filter: brightness(0.95);
+}
+
+.primary-btn-outline {
+  background: transparent;
+  border: 1px solid var(--bp-primary);
+  color: var(--bp-primary);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-weight: 600;
+}
+
+.danger-btn {
+  background: #ff5a7a;
+  color: white;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-weight: 600;
+}
+
+.secondary-btn {
+  background: #f4f6fb;
+  color: var(--bp-text);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-weight: 600;
+}
+
 /* 1. Main Layout & Navigation (App.jsx에서 사용) */
 .app-shell {
   max-width: 700px;
   margin: 0 auto;
   min-height: 100vh;
   background: var(--bp-card);
-  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
   overflow-x: hidden;
 }
 
@@ -83,7 +127,10 @@ button {
   overflow-x: auto;
   scrollbar-width: none;
 }
-.nav-tab-menu::-webkit-scrollbar { display: none; }
+
+.nav-tab-menu::-webkit-scrollbar {
+  display: none;
+}
 
 .nav-tab-item {
   flex-grow: 1;

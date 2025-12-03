@@ -107,6 +107,12 @@ const SocialLogin = ({ onSocialLogin }) => (
   </div>
 )
 
+import Modal from './Modal'
+
+// ... (LoginForm, SignupForm, SocialLogin components remain unchanged)
+// But I need to preserve them. I will use the "replace entire file" approach or careful chunk replacement.
+// Since the file is small enough, I'll replace the AuthScreen component part.
+
 const AuthScreen = ({ mode, onModeChange, onSubmit, onSocialLogin }) => {
   const [form, setForm] = useState({
     email: '',
@@ -116,6 +122,23 @@ const AuthScreen = ({ mode, onModeChange, onSubmit, onSocialLogin }) => {
     dueDate: ''
   })
 
+  // Modal State
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  })
+
+  const openModal = (title, message) => {
+    setModalState({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => setModalState(prev => ({ ...prev, isOpen: false }))
+    })
+  }
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
     setForm((prev) => ({
@@ -124,13 +147,33 @@ const AuthScreen = ({ mode, onModeChange, onSubmit, onSocialLogin }) => {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onSubmit(form)
+    try {
+      await onSubmit(form)
+    } catch (err) {
+      openModal('오류', err.message)
+    }
+  }
+
+  const handleSocialLogin = async (provider) => {
+    try {
+      await onSocialLogin(provider)
+    } catch (err) {
+      openModal('로그인 실패', err.message)
+    }
   }
 
   return (
     <div className="auth-container">
+      <Modal
+        isOpen={modalState.isOpen}
+        title={modalState.title}
+        message={modalState.message}
+        onConfirm={modalState.onConfirm}
+        confirmText="확인"
+      />
+
       <div className="auth-card ui-card">
         <header className="auth-header">
           <h1>Baby Prep</h1>
@@ -160,7 +203,7 @@ const AuthScreen = ({ mode, onModeChange, onSubmit, onSocialLogin }) => {
           <SignupForm form={form} onChange={handleChange} onSubmit={handleSubmit} />
         )}
 
-        <SocialLogin onSocialLogin={onSocialLogin} />
+        <SocialLogin onSocialLogin={handleSocialLogin} />
       </div>
     </div>
   )

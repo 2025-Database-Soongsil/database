@@ -85,6 +85,24 @@ def delete_me(authorization: str = Header(None)):
     storage.reset_user(user_id)
     return {"ok": True}
 
+
+from pydantic import BaseModel
+
+class UpdateProfile(BaseModel):
+    nickname: str
+
+@router.patch("/me")
+def update_me(payload: UpdateProfile, authorization: str = Header(None)):
+    user_id = auth_service.parse_token(authorization)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="인증이 필요합니다.")
+    
+    success = storage.update_user_nickname(user_id, payload.nickname)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    return {"ok": True, "nickname": payload.nickname}
+
 @router.post("/logout")
 def logout(authorization: str = Header(None)):
     user_id = auth_service.parse_token(authorization)

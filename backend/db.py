@@ -137,6 +137,16 @@ def delete_user_by_id(user_id: str | int) -> bool:
         return cur.rowcount > 0
 
 
+def update_user_nickname(user_id: int, nickname: str) -> bool:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'UPDATE "User" SET nickname = %s, updated_at = NOW() WHERE id = %s',
+            (nickname, user_id)
+        )
+        return cur.rowcount > 0
+
+
 # ---------------- Supplements & Health Info ----------------
 
 def fetch_user_supplements(user_id: int) -> list[dict]:
@@ -202,6 +212,19 @@ def fetch_calendar_event(event_id: int) -> Optional[dict]:
         return cur.fetchone()
 
 
+def fetch_calendar_events_range(user_id: int, start_date, end_date, type: Optional[str] = None) -> list[dict]:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        query = 'SELECT * FROM "CalendarEvent" WHERE user_id = %s AND start_datetime >= %s AND start_datetime < %s'
+        params = [user_id, start_date, end_date]
+        if type:
+            query += ' AND type = %s'
+            params.append(type)
+        
+        cur.execute(query, tuple(params))
+        return cur.fetchall() or []
+
+
 def upsert_calendar_event(
     user_id: int,
     title: str,
@@ -224,10 +247,9 @@ def upsert_calendar_event(
             return existing
 
         cur.execute(
-            'insert into "CalendarEvent" (id, user_id, type, title, start_datetime, end_datetime, repeat_cycle, linked_supplement_id, created_at, updated_at) '
-            'values (%s, %s, %s, %s, %s, %s, %s, %s, now(), now()) returning *',
+            'insert into "CalendarEvent" (user_id, type, title, start_datetime, end_datetime, repeat_cycle, linked_supplement_id, created_at, updated_at) '
+            'values (%s, %s, %s, %s, %s, %s, %s, now(), now()) returning *',
             (
-                _generate_id(),
                 user_id,
                 type,
                 title,
@@ -238,6 +260,22 @@ def upsert_calendar_event(
             ),
         )
         return cur.fetchone()
+
+
+def delete_calendar_event(event_id: int, user_id: int) -> bool:
+    """
+    Delete a calendar event.
+    """
+    with get_conn() as conn:
+        cur = conn.cursor()
+        # First delete notifications linked to this event
+        cur.execute('DELETE FROM "Notification" WHERE event_id = %s', (event_id,))
+        
+        cur.execute(
+            'DELETE FROM "CalendarEvent" WHERE id = %s AND user_id = %s',
+            (event_id, user_id),
+        )
+        return cur.rowcount > 0
 
 
 # Alias for backward compatibility if needed, or just use upsert_calendar_event directly
@@ -262,9 +300,9 @@ def ensure_notification(event_id: int, notify_time) -> dict:
             return existing
 
         cur.execute(
-            'insert into "Notification" (id, event_id, notify_time, is_sent) '
-            "values (%s, %s, %s, %s) returning *",
-            (_generate_id(), event_id, notify_time, False),
+            'insert into "Notification" (event_id, notify_time, is_sent) '
+            "values (%s, %s, %s) returning *",
+            (event_id, notify_time, False),
         )
         return cur.fetchone()
 
