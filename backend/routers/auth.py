@@ -120,3 +120,78 @@ def logout(authorization: str = Header(None)):
     if not user_id:
         raise HTTPException(status_code=401, detail="인증이 필요합니다.")
     return {"ok": True}
+from models import TimePayload, TogglePayload
+from datetime import datetime, time
+
+@router.get("/settings")
+def get_settings(authorization: str = Header(None)):
+    user_id = auth_service.parse_token(authorization)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="인증이 필요합니다.")
+    
+    rows = db.fetch_user_settings(user_id)
+    
+    # If no rows, return default state (empty list, enabled=True)
+    if not rows:
+        return {
+            "notification_enabled": True,
+            "times": []
+        }
+    
+    # All rows should have same enabled status, take from first
+    enabled = rows[0]["notification_enabled"]
+    
+    # Extract times
+    times = []
+    for row in rows:
+        if row["default_notify_time"]:
+            # Format HH:MM
+            t = row["default_notify_time"]
+            times.append(t.strftime("%H:%M"))
+            
+    return {
+        "notification_enabled": enabled,
+        "times": times
+    }
+
+
+@router.post("/settings/time")
+def add_time(payload: TimePayload, authorization: str = Header(None)):
+    user_id = auth_service.parse_token(authorization)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="인증이 필요합니다.")
+    
+    try:
+        parts = payload.time.split(":")
+        notify_time = time(int(parts[0]), int(parts[1]))
+    except (ValueError, IndexError):
+        raise HTTPException(status_code=400, detail="Invalid time format")
+
+    db.add_user_setting_time(user_id, notify_time)
+    return {"ok": True}
+
+
+@router.delete("/settings/time")
+def delete_time(payload: TimePayload, authorization: str = Header(None)):
+    user_id = auth_service.parse_token(authorization)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="인증이 필요합니다.")
+    
+    try:
+        parts = payload.time.split(":")
+        notify_time = time(int(parts[0]), int(parts[1]))
+    except (ValueError, IndexError):
+        raise HTTPException(status_code=400, detail="Invalid time format")
+
+    db.delete_user_setting_time(user_id, notify_time)
+    return {"ok": True}
+
+
+@router.patch("/settings/toggle")
+def toggle_notifications(payload: TogglePayload, authorization: str = Header(None)):
+    user_id = auth_service.parse_token(authorization)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="인증이 필요합니다.")
+    
+    db.update_user_notification_toggle(user_id, payload.enabled)
+    return {"ok": True}

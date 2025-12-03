@@ -45,6 +45,21 @@ class TodoCreate(BaseModel):
     date: str
 
 
+class UserSetting(BaseModel):
+    user_id: int
+    notification_enabled: bool
+    default_notify_time: Optional[time] = None
+    language: str = "ko"
+
+
+class TimePayload(BaseModel):
+    time: str # HH:MM
+
+
+class TogglePayload(BaseModel):
+    enabled: bool
+
+
 class Supplement(BaseModel):
     id: str
     name: str

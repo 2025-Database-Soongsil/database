@@ -375,3 +375,54 @@ def mark_notification_sent(notification_id: int) -> None:
             (notification_id,),
         )
 
+# ---------------- User Settings ----------------
+
+def fetch_user_settings(user_id: int) -> list[dict]:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute('select * from "UserSetting" where user_id = %s order by default_notify_time', (user_id,))
+        return cur.fetchall() or []
+
+
+def add_user_setting_time(user_id: int, notify_time: time) -> dict:
+    # Check if exists
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'select * from "UserSetting" where user_id = %s and default_notify_time = %s limit 1',
+            (user_id, notify_time)
+        )
+        existing = cur.fetchone()
+        if existing:
+            return existing
+
+        # Get current enabled status from another row, or default to True
+        cur.execute('select notification_enabled from "UserSetting" where user_id = %s limit 1', (user_id,))
+        row = cur.fetchone()
+        current_enabled = row['notification_enabled'] if row else True
+
+        cur.execute(
+            'INSERT INTO "UserSetting" (user_id, notification_enabled, default_notify_time, language) VALUES (%s, %s, %s, %s) RETURNING *',
+            (user_id, current_enabled, notify_time, 'ko')
+        )
+        return cur.fetchone()
+
+
+def delete_user_setting_time(user_id: int, notify_time: time) -> bool:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'DELETE FROM "UserSetting" WHERE user_id = %s AND default_notify_time = %s',
+            (user_id, notify_time)
+        )
+        return cur.rowcount > 0
+
+
+def update_user_notification_toggle(user_id: int, enabled: bool) -> bool:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'UPDATE "UserSetting" SET notification_enabled = %s WHERE user_id = %s',
+            (enabled, user_id)
+        )
+        return cur.rowcount > 0

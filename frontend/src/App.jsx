@@ -23,7 +23,7 @@ function App() {
     activeTab, setActiveTab,
     calendarMonth, handleMonthChange,
     selectedDate, setSelectedDate,
-    supplements, todos, notifications, setNotifications,
+    supplements, todos, notifications, addNotification, removeNotification, notificationsEnabled, toggleNotifications,
     height, setHeight, preWeight, setPreWeight, currentWeight, setCurrentWeight,
     selectedNutrient, setSelectedNutrient,
     handleAddTodo, handleToggleTodo,
@@ -136,7 +136,10 @@ function App() {
           {activeTab === 'settings' && (
             <SettingsTab
               notifications={notifications}
-              onNotificationsChange={setNotifications}
+              onAddNotification={addNotification}
+              onRemoveNotification={removeNotification}
+              notificationsEnabled={notificationsEnabled}
+              onToggleNotifications={toggleNotifications}
               nickname={user.nickname}
               // onNicknameChange removed as we use onSaveNickname now
               onSaveNickname={updateNickname}

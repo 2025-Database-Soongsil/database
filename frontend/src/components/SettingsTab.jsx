@@ -6,7 +6,10 @@ import './SettingsTab.css'
 
 const SettingsTab = ({
   notifications,
-  onNotificationsChange,
+  onAddNotification,
+  onRemoveNotification,
+  notificationsEnabled,
+  onToggleNotifications,
   nickname,
   onSaveNickname,
   onLogout,
@@ -36,12 +39,12 @@ const SettingsTab = ({
 
   const handleAdd = () => {
     if (!newTime || notifications.includes(newTime)) return
-    onNotificationsChange([...notifications, newTime].sort())
+    onAddNotification(newTime)
     setNewTime('')
   }
 
   const handleRemove = (time) => {
-    onNotificationsChange(notifications.filter((item) => item !== time))
+    onRemoveNotification(time)
   }
 
   const handleNicknameSave = async () => {
@@ -146,38 +149,56 @@ const SettingsTab = ({
 
       {/* 1. 알림 설정 그룹 */}
       <section className="settings-group">
-        <h3>⏰ 알림 시간 관리</h3>
-
-        <div className="noti-input-container">
-          <div className="time-input-wrapper">
-            <button
-              type="button"
-              className="modern-time-input"
-              onClick={() => setIsTimePickerOpen(true)}
-              style={{ color: newTime ? 'inherit' : '#aaa', textAlign: 'left' }}
-            >
-              {newTime || '시간을 선택해주세요'}
-            </button>
-            <button type="button" onClick={handleAdd} className="add-time-btn">
-              추가
-            </button>
-          </div>
-          <p className="helper-text">원하는 알림 시간을 추가해주세요.</p>
+        <div className="section-header">
+          <h3>⏰ 알림 시간 관리</h3>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={notificationsEnabled}
+              onChange={(e) => onToggleNotifications(e.target.checked)}
+            />
+            <span className="slider round"></span>
+          </label>
         </div>
 
-        <div className="noti-list">
-          {notifications.length > 0 ? (
-            notifications.map((time) => (
-              <div key={time} className="noti-chip">
-                <span className="time-text">{time}</span>
-                <button type="button" onClick={() => handleRemove(time)} className="del-btn" aria-label="삭제">
-                  ✕
-                </button>
-              </div>
-            ))
-          ) : (
-            <p className="empty-noti">설정된 알림이 없습니다.</p>
-          )}
+        <div className={`noti-content ${!notificationsEnabled ? 'disabled' : ''}`}>
+          <div className="noti-input-container">
+            <div className="time-input-wrapper">
+              <button
+                type="button"
+                className="modern-time-input"
+                onClick={() => notificationsEnabled && setIsTimePickerOpen(true)}
+                disabled={!notificationsEnabled}
+                style={{ color: newTime ? 'inherit' : '#aaa', textAlign: 'left' }}
+              >
+                {newTime || '시간을 선택해주세요'}
+              </button>
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="add-time-btn"
+                disabled={!notificationsEnabled}
+              >
+                추가
+              </button>
+            </div>
+            <p className="helper-text">원하는 알림 시간을 추가해주세요.</p>
+          </div>
+
+          <div className="noti-list">
+            {notifications.length > 0 ? (
+              notifications.map((time) => (
+                <div key={time} className="noti-chip">
+                  <span className="time-text">{time}</span>
+                  <button type="button" onClick={() => handleRemove(time)} className="del-btn" aria-label="삭제">
+                    ✕
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p className="empty-noti">설정된 알림이 없습니다.</p>
+            )}
+          </div>
         </div>
       </section>
 

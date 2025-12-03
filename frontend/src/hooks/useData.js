@@ -20,6 +20,7 @@ export function useData(authToken, user) {
     const [supplements, setSupplements] = useState(initialSupplements)
     const [todos, setTodos] = useState(initialTodos)
     const [notifications, setNotifications] = useState(['08:00', '21:00'])
+    const [notificationsEnabled, setNotificationsEnabled] = useState(true)
 
     // Profile State
     const [height, setHeight] = useState('')
@@ -54,13 +55,79 @@ export function useData(authToken, user) {
                     const flatTodos = data.flatMap(day => day.todos || [])
                     setTodos(flatTodos)
                 }
+                // 2. Fetch User Settings
+                const resSettings = await fetch(`${API_BASE}/auth/settings`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                })
+                if (resSettings.ok) {
+                    const settings = await resSettings.json()
+                    setNotificationsEnabled(settings.notification_enabled)
+                    setNotifications(settings.times || [])
+                }
             } catch (e) {
-                console.error("Failed to fetch calendar data", e)
+                console.error("Failed to fetch data", e)
             }
         }
         fetchMonthly()
     }, [calendarMonth, authToken, user?.id])
 
+    // Settings Handlers
+    const addNotification = async (time) => {
+        // Optimistic
+        setNotifications(prev => [...prev, time].sort())
+
+        if (!authToken) return
+        try {
+            await fetch(`${API_BASE}/auth/settings/time`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ time })
+            })
+        } catch (e) {
+            console.error("Failed to add notification", e)
+        }
+    }
+
+    const removeNotification = async (time) => {
+        // Optimistic
+        setNotifications(prev => prev.filter(t => t !== time))
+
+        if (!authToken) return
+        try {
+            await fetch(`${API_BASE}/auth/settings/time`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ time })
+            })
+        } catch (e) {
+            console.error("Failed to remove notification", e)
+        }
+    }
+
+    const toggleNotifications = async (enabled) => {
+        // Optimistic
+        setNotificationsEnabled(enabled)
+
+        if (!authToken) return
+        try {
+            await fetch(`${API_BASE}/auth/settings/toggle`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ enabled })
+            })
+        } catch (e) {
+            console.error("Failed to toggle settings", e)
+        }
+    }
     const handleAddTodo = async (text, date) => {
         if (!text || !date) return
         const clean = text.trim()
@@ -133,6 +200,7 @@ export function useData(authToken, user) {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
+                day: '2-digit',
             }).replace(/\. /g, '-').replace('.', '')
         )
         setActiveTab('calendar')
@@ -162,7 +230,11 @@ export function useData(authToken, user) {
         todos,
         setTodos,
         notifications,
-        setNotifications,
+        setNotifications, // Still exposed if needed, but prefer specific handlers
+        addNotification,
+        removeNotification,
+        notificationsEnabled,
+        toggleNotifications,
         height,
         setHeight,
         preWeight,
