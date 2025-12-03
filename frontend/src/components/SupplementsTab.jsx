@@ -1,75 +1,82 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { generateId } from '../utils/helpers'
 import './SupplementsTab.css'
 
-const NutrientMenu = ({ catalog, currentId, onSelect, activeSupplements }) => (
-  <aside className="nutrient-menu">
-    <h3>영양소 가이드 📖</h3>
-    <div className="menu-list">
-      {catalog.map((nutrient) => (
-        <button
-          key={nutrient.id}
-          type="button"
-          className={`menu - item ${nutrient.id === currentId ? 'active' : ''} `}
-          onClick={() => onSelect(nutrient.id)}
-        >
-          <span className="label">{nutrient.label ?? nutrient.nutrient}</span>
-          <span className="stage-tag">{nutrient.stage}</span>
-        </button>
-      ))}
-    </div>
+const NutrientDetail = ({ current, onAddSupplement }) => {
+  const [isExpanded, setIsExpanded] = useState(false)
 
-    <div className="active-summary-card">
-      <h4>내 복용 일정 ✨</h4>
-      <ul>
-        {activeSupplements.length === 0 && <li>등록된 영양제가 없어요.</li>}
-        {activeSupplements.map((supplement) => (
-          <li key={supplement.id}>
-            <span className="dot"></span>
-            {supplement.name}
-          </li>
-        ))}
-      </ul>
-    </div>
-  </aside>
-)
+  // Reset expansion when nutrient changes
+  useEffect(() => {
+    setIsExpanded(false)
+  }, [current.id])
 
-const NutrientDetail = ({ current, onAddSupplement }) => (
-  <>
-    <header className="content-header">
-      <h2>{current.nutrient}</h2>
-      <p className="desc">{current.description}</p>
-      <div className="benefit-tags">
-        {current.benefits.map((benefit) => (
-          <span key={benefit} className="tag">{benefit}</span>
-        ))}
-      </div>
-    </header>
+  // Parse description to separate main text and sub text (in parentheses)
+  const parseDescription = (text) => {
+    if (!text) return { main: '', sub: null }
+    const match = text.match(/^(.*?)\s*\((.*?)\)\s*$/)
+    if (match) {
+      return { main: match[1], sub: match[2] }
+    }
+    return { main: text, sub: null }
+  }
 
-    <section className="recommend-section">
-      <h3>추천 제품 / 섭취 가이드</h3>
-      <div className="supplement-grid">
-        {current.supplements.map((supplement) => (
-          <article key={supplement.id} className="supplement-card">
-            <div className="card-header">
-              <h4>{supplement.name}</h4>
-              <button
-                className="add-btn"
-                onClick={() => onAddSupplement(current, supplement)}
-              >
-                내 캘린더에 담기 ＋
-              </button>
-            </div>
-            <p className="schedule-info">🕒 {supplement.schedule}</p>
-            {supplement.caution && (
-              <p className="caution-info">⚠️ {supplement.caution}</p>
-            )}
-          </article>
-        ))}
-      </div>
-    </section>
-  </>
-)
+  const { main, sub } = parseDescription(current.description)
+
+  const supplements = current.supplements || []
+  const visibleSupplements = isExpanded ? supplements : supplements.slice(0, 2)
+  const showToggle = supplements.length > 2
+
+  return (
+    <>
+      <header className="content-header">
+        <h2>{current.name}</h2>
+        <p className="desc">{main}</p>
+        {sub && <p className="sub-desc">{sub}</p>}
+        <div className="benefit-tags">
+          {current.benefits?.map((benefit) => (
+            <span key={benefit} className="tag">{benefit}</span>
+          ))}
+        </div>
+      </header>
+
+      <section className="recommend-section">
+        <h3>추천 제품 / 섭취 가이드</h3>
+        <div className="supplement-grid">
+          {visibleSupplements.length > 0 ? (
+            visibleSupplements.map((supplement) => (
+              <article key={supplement.id} className="supplement-card">
+                <div className="card-header">
+                  <h4>{supplement.name}</h4>
+                  <button
+                    className="add-btn"
+                    onClick={() => onAddSupplement(current, supplement)}
+                  >
+                    내 캘린더에 담기 ＋
+                  </button>
+                </div>
+                <p className="schedule-info">🕒 {supplement.schedule}</p>
+                {supplement.caution && (
+                  <p className="caution-info">⚠️ {supplement.caution}</p>
+                )}
+              </article>
+            ))
+          ) : (
+            <p className="empty-message">추천 제품 정보가 없습니다.</p>
+          )}
+        </div>
+
+        {showToggle && (
+          <button
+            className="toggle-more-btn"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? '접기 ▲' : '더보기 ▼'}
+          </button>
+        )}
+      </section>
+    </>
+  )
+}
 
 const CustomSupplementForm = ({ onAddCustom }) => {
   const [customForm, setCustomForm] = useState({
@@ -141,23 +148,102 @@ const SupplementsTab = ({
   onSelectNutrient,
   onAddSupplement,
   onAddCustom,
-  activeSupplements
+  activeSupplements,
+  fetchNutrients
 }) => {
-  const current = catalog.find((item) => item.id === selectedNutrient) ?? catalog[0]
+  const [activePeriod, setActivePeriod] = useState('prep_basic')
+  const [nutrients, setNutrients] = useState([])
+
+  const periods = [
+    { id: 'prep_basic', label: '기초 준비기' },
+    { id: 'prep_focus', label: '집중 준비기' },
+    { id: 'ovulation', label: '임박기' },
+    { id: 'pregnancy_all', label: '임신 중' }
+  ]
+
+  // Fetch nutrients when activePeriod changes
+  useEffect(() => {
+    const loadNutrients = async () => {
+      if (fetchNutrients) {
+        const data = await fetchNutrients(activePeriod)
+        setNutrients(data)
+        // If current selection is not in new data, select first
+        if (data.length > 0) {
+          // Check if selectedNutrient is in data
+          const exists = data.find(n => n.id === selectedNutrient)
+          if (!exists) {
+            onSelectNutrient(data[0].id)
+          }
+        }
+      }
+    }
+    loadNutrients()
+  }, [activePeriod, fetchNutrients, selectedNutrient, onSelectNutrient])
+
+  // Determine active nutrient from the fetched list
+  const current = nutrients.find(n => n.id === selectedNutrient) || nutrients[0]
 
   return (
     <div className="supplements-layout">
-      <NutrientMenu
-        catalog={catalog}
-        currentId={current.id}
-        onSelect={onSelectNutrient}
-        activeSupplements={activeSupplements}
-      />
+      {/* 1. Period Guide Section (Includes Selection + Content) */}
+      <section className="period-guide-section">
+        <h3>시기별 가이드 📅</h3>
 
-      <main className="nutrient-content">
-        <NutrientDetail current={current} onAddSupplement={onAddSupplement} />
-        <CustomSupplementForm onAddCustom={onAddCustom} />
-      </main>
+        {/* Period Buttons */}
+        <div className="period-buttons">
+          {periods.map((period) => (
+            <button
+              key={period.id}
+              className={`period-btn ${activePeriod === period.id ? 'active' : ''}`}
+              onClick={() => setActivePeriod(period.id)}
+            >
+              {period.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Nutrient Content (Tabs + Detail) */}
+        <div className="nutrient-content-area">
+          {nutrients.length > 0 ? (
+            <>
+              <div className="nutrient-tabs">
+                {nutrients.map(nutrient => (
+                  <button
+                    key={nutrient.id}
+                    className={`nutrient-tab ${nutrient.id === current?.id ? 'active' : ''}`}
+                    onClick={() => onSelectNutrient(nutrient.id)}
+                  >
+                    {nutrient.name}
+                  </button>
+                ))}
+              </div>
+              <NutrientDetail current={current} onAddSupplement={onAddSupplement} />
+            </>
+          ) : (
+            <div className="empty-state">해당 시기의 영양소 정보가 없습니다.</div>
+          )}
+        </div>
+      </section>
+
+      {/* 3. Active Supplements / Schedule */}
+      <section className="my-schedule-section">
+        <h4>내 복용 일정 💊</h4>
+        {activeSupplements.length > 0 ? (
+          <ul className="schedule-list">
+            {activeSupplements.map((item) => (
+              <li key={item.id}>
+                <span className="dot"></span>
+                {item.name}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="empty-schedule">등록된 일정이 없습니다.</p>
+        )}
+      </section>
+
+      {/* 4. Custom Form */}
+      <CustomSupplementForm onAddCustom={onAddCustom} />
     </div>
   )
 }

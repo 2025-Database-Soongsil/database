@@ -1,5 +1,7 @@
+
 import { useState } from 'react'
 import Modal from './Modal'
+import TimePickerModal from './TimePickerModal'
 import './SettingsTab.css'
 
 const SettingsTab = ({
@@ -12,6 +14,7 @@ const SettingsTab = ({
 }) => {
   const [newTime, setNewTime] = useState('')
   const [localNickname, setLocalNickname] = useState(nickname)
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false)
 
   // Modal States
   const [modalState, setModalState] = useState({
@@ -114,6 +117,8 @@ const SettingsTab = ({
     })
   }
 
+
+
   return (
     <div className="settings-container">
       <Modal
@@ -127,26 +132,52 @@ const SettingsTab = ({
         cancelText={modalState.cancelText}
       />
 
+      <TimePickerModal
+        isOpen={isTimePickerOpen}
+        onClose={() => setIsTimePickerOpen(false)}
+        onConfirm={(time) => {
+          setNewTime(time);
+          setIsTimePickerOpen(false);
+        }}
+        initialTime={newTime}
+      />
+
       <h2 className="page-title">설정 ⚙️</h2>
 
       {/* 1. 알림 설정 그룹 */}
       <section className="settings-group">
         <h3>⏰ 알림 시간 관리</h3>
-        <div className="noti-list">
-          {notifications.map((time) => (
-            <span key={time} className="noti-chip">
-              {time}
-              <button type="button" onClick={() => handleRemove(time)} className="del-btn">
-                ✕
-              </button>
-            </span>
-          ))}
+
+        <div className="noti-input-container">
+          <div className="time-input-wrapper">
+            <button
+              type="button"
+              className="modern-time-input"
+              onClick={() => setIsTimePickerOpen(true)}
+              style={{ color: newTime ? 'inherit' : '#aaa', textAlign: 'left' }}
+            >
+              {newTime || '시간을 선택해주세요'}
+            </button>
+            <button type="button" onClick={handleAdd} className="add-time-btn">
+              추가
+            </button>
+          </div>
+          <p className="helper-text">원하는 알림 시간을 추가해주세요.</p>
         </div>
-        <div className="noti-input-row">
-          <input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
-          <button type="button" onClick={handleAdd}>
-            추가
-          </button>
+
+        <div className="noti-list">
+          {notifications.length > 0 ? (
+            notifications.map((time) => (
+              <div key={time} className="noti-chip">
+                <span className="time-text">{time}</span>
+                <button type="button" onClick={() => handleRemove(time)} className="del-btn" aria-label="삭제">
+                  ✕
+                </button>
+              </div>
+            ))
+          ) : (
+            <p className="empty-noti">설정된 알림이 없습니다.</p>
+          )}
         </div>
       </section>
 
@@ -174,7 +205,7 @@ const SettingsTab = ({
 
       {/* 3. 계정 작업 (Danger Zone) */}
       <section className="settings-group danger-zone">
-        <h3>⚠️ 계정 작업</h3>
+        <h3>⚠️ 계정</h3>
         <button type="button" onClick={handleLogoutClick} className="primary-btn-outline">
           로그아웃
         </button>

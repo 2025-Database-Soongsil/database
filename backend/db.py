@@ -203,6 +203,56 @@ def fetch_supplement_by_id(supplement_id: int | str) -> Optional[dict]:
         return cur.fetchone()
 
 
+def fetch_nutrients_by_period(period: str) -> list[dict]:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        # 1. Fetch Nutrients
+        cur.execute(
+            'select * from "Nutrient" where recommended_period = %s',
+            (period,),
+        )
+        nutrients = cur.fetchall()
+        
+        if not nutrients:
+            return []
+
+        # 2. Fetch Supplements for these nutrients
+        nutrient_ids = tuple(n['id'] for n in nutrients)
+        
+        # Handle single element tuple syntax for SQL
+        if len(nutrient_ids) == 0:
+            return nutrients
+            
+        query = """
+            SELECT s.*, sn.nutrient_id
+            FROM "Supplement" s
+            JOIN "SupplementNutrient" sn ON s.id = sn.supplement_id
+            WHERE sn.nutrient_id IN %s
+        """
+        cur.execute(query, (nutrient_ids,))
+        supplements = cur.fetchall()
+        
+        # 3. Attach supplements to nutrients
+        supp_map = {n['id']: [] for n in nutrients}
+        for s in supplements:
+            s_formatted = {
+                'id': s['id'],
+                'name': s['name'],
+                'schedule': s.get('dosage_info'), # Map dosage_info to schedule
+                'caution': s.get('caution'),
+                'brand': s.get('brand')
+            }
+            supp_map[s['nutrient_id']].append(s_formatted)
+            
+        for n in nutrients:
+            n['supplements'] = supp_map.get(n['id'], [])
+            # Ensure benefits is at least an empty list if not present (schema doesn't have it)
+            if 'benefits' not in n:
+                n['benefits'] = []
+                
+        return nutrients
+
+
 # ---------------- Calendar & Notifications ----------------
 
 def fetch_calendar_event(event_id: int) -> Optional[dict]:

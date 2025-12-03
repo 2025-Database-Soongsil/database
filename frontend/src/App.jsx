@@ -28,10 +28,11 @@ function App() {
     selectedNutrient, setSelectedNutrient,
     handleAddTodo, handleToggleTodo,
     handleAddSupplement, handleAddCustomSupplement,
-    resetData
+    resetData,
+    fetchNutrients
   } = useData(authToken, user)
 
-  const { chatMessages, sendMessage, resetChat } = useChatbot(authToken)
+  const { chatMessages, sendMessage, resetChat, isLoading, markAsRead } = useChatbot(authToken)
 
   // Derived State
   const stage = useMemo(() => calculateStage(dates.startDate, dates.dueDate), [dates])
@@ -111,6 +112,7 @@ function App() {
               onAddSupplement={handleAddSupplement}
               onAddCustom={handleAddCustomSupplement}
               activeSupplements={supplements}
+              fetchNutrients={fetchNutrients}
             />
           )}
 
@@ -129,7 +131,7 @@ function App() {
             />
           )}
 
-          {activeTab === 'chatbot' && <ChatbotTab messages={chatMessages} onSend={sendMessage} />}
+          {activeTab === 'chatbot' && <ChatbotTab messages={chatMessages} onSend={sendMessage} isLoading={isLoading} markAsRead={markAsRead} />}
 
           {activeTab === 'settings' && (
             <SettingsTab

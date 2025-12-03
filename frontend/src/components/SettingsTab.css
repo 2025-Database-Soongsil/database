@@ -1,5 +1,5 @@
 .settings-container {
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -28,25 +28,70 @@
 }
 
 /* 알림 설정 */
-.noti-input-row {
+.noti-input-container {
+  margin-bottom: 24px;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.time-input-wrapper {
   display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 8px;
+  position: relative;
 }
 
-.noti-input-row input {
+
+
+.modern-time-input {
   flex: 1;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
+  padding: 12px 16px;
+  border: 1px solid #e1e4e8;
+  border-radius: 12px;
+  font-size: 16px;
+  color: var(--bp-text);
+  background: white;
+  transition: all 0.2s;
+  cursor: pointer;
+  /* Indicate clickability */
+  font-family: inherit;
+  appearance: none;
+  /* Remove default styling */
 }
 
-.noti-input-row button {
+.modern-time-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.5);
+  /* Make icon softer gray */
+}
+
+.modern-time-input:focus {
+  border-color: var(--bp-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 143, 163, 0.1);
+}
+
+.add-time-btn {
   background: var(--bp-primary);
   color: white;
-  padding: 0 16px;
-  border-radius: 8px;
-  font-weight: bold;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.add-time-btn:hover {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+}
+
+.helper-text {
+  margin: 0;
+  font-size: 13px;
+  color: #888;
+  padding-left: 4px;
 }
 
 .noti-list {
@@ -56,31 +101,52 @@
 }
 
 .noti-chip {
-  background: var(--bp-bg);
-  padding: 8px 12px;
+  background: white;
+  border: 1px solid #eee;
+  padding: 8px 16px;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 15px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--bp-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s;
+}
+
+.noti-chip:hover {
+  border-color: var(--bp-primary);
+  transform: translateY(-2px);
+}
+
+.time-text {
+  font-weight: 600;
+  color: var(--bp-accent);
 }
 
 .del-btn {
-  background: #ccc;
-  color: white;
+  background: #f1f3f5;
+  color: #adb5bd;
   border-radius: 50%;
   width: 20px;
   height: 20px;
-  font-size: 12px;
+  font-size: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 0;
+  transition: all 0.2s;
 }
 
 .del-btn:hover {
   background: #ff6b6b;
+  color: white;
+}
+
+.empty-noti {
+  color: #adb5bd;
+  font-size: 14px;
+  padding: 10px;
 }
 
 /* 계정 설정 */

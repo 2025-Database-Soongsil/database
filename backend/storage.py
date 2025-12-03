@@ -237,6 +237,10 @@ def get_supplements() -> List[dict]:
     return db.fetch_supplements()
 
 
+def get_nutrients_by_period(period: str) -> List[dict]:
+    return db.fetch_nutrients_by_period(period)
+
+
 # ---------------- calendar and notifications (DB) ----------------
 
 def create_calendar_event_for_supplement_intake(

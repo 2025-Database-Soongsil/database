@@ -2,6 +2,8 @@ export const nutrientCatalog = [
   {
     id: 'folic',
     stage: '기초 준비기',
+    recommended_period: 'prep_basic',
+    name: '엽산',
     nutrient: '엽산',
     description: '배아 신경관 발달을 돕고 초기 유산 위험을 낮추는 필수 영양소입니다.',
     benefits: ['신경관 결손 예방', '배란 주기 안정화', '피로감 완화'],
@@ -23,6 +25,8 @@ export const nutrientCatalog = [
   {
     id: 'omega',
     stage: '집중 준비기',
+    recommended_period: 'prep_focus',
+    name: '오메가3 / DHA',
     nutrient: '오메가3 / DHA',
     description: '난황 발달과 염증 감소에 도움을 주어 착상 환경을 최적화합니다.',
     benefits: ['염증 및 산화 스트레스 감소', '호르몬 균형 보조', '혈액순환 개선'],
@@ -44,6 +48,8 @@ export const nutrientCatalog = [
   {
     id: 'iron',
     stage: '임박기',
+    recommended_period: 'ovulation',
+    name: '철분 & 비타민C',
     nutrient: '철분 & 비타민C',
     description: '배란 주간에는 체내 산소 공급과 에너지 생산을 위해 철분 보충이 중요합니다.',
     benefits: ['빈혈 예방', '피로 개선', '호르몬 운반 보조'],
@@ -59,6 +65,23 @@ export const nutrientCatalog = [
         name: '철분 스프레이',
         schedule: '주 3회 저녁 21:00',
         caution: '섭취 후 30분간 음식 섭취를 피하세요.'
+      }
+    ]
+  },
+  {
+    id: 'vitd',
+    stage: '임신 중',
+    recommended_period: 'pregnancy_all',
+    name: '비타민 D',
+    nutrient: '비타민 D',
+    description: '칼슘 흡수를 돕고 태아의 뼈 형성에 중요한 역할을 합니다.',
+    benefits: ['뼈 건강', '면역력 강화', '우울감 완화'],
+    supplements: [
+      {
+        id: 'vitd1000',
+        name: '비타민 D 1000IU',
+        schedule: '매일 점심 식후',
+        caution: '지용성이므로 식사와 함께 드세요.'
       }
     ]
   }

@@ -34,10 +34,31 @@ const ChatbotTab = ({ messages, onSend }) => {
 
 export default ChatbotTab*/
 // ChatbotTab.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './ChatbotTab.css' // CSS 파일 임포트
 
-const ChatbotTab = ({ messages, onSend }) => {
+const Typewriter = ({ text, speed = 30, onComplete }) => {
+  const [displayedText, setDisplayedText] = useState('')
+
+  useEffect(() => {
+    let i = 0
+    const timer = setInterval(() => {
+      if (i < text.length) {
+        setDisplayedText((prev) => prev + text.charAt(i))
+        i++
+      } else {
+        clearInterval(timer)
+        if (onComplete) onComplete()
+      }
+    }, speed)
+
+    return () => clearInterval(timer)
+  }, [text, speed, onComplete])
+
+  return <p>{displayedText}</p>
+}
+
+const ChatbotTab = ({ messages, onSend, isLoading, markAsRead }) => {
   const [input, setInput] = useState('')
 
   const handleSubmit = (e) => {
@@ -53,18 +74,33 @@ const ChatbotTab = ({ messages, onSend }) => {
         {messages.length === 0 && (
           <div className="empty-chat">
             <span className="bot-icon">🤖</span>
-            <p>궁금한 점을 물어보세요!<br/>친절하게 답변해 드릴게요.</p>
+            <p>궁금한 점을 물어보세요!<br />친절하게 답변해 드릴게요.</p>
           </div>
         )}
         {messages.map((message) => (
           <div key={message.id} className={`message-row ${message.role}`}>
             {message.role === 'bot' && <div className="avatar">🤖</div>}
             <div className="bubble">
-              <p>{message.text}</p>
+              {message.role === 'bot' && message.isNew ? (
+                <Typewriter
+                  text={message.text}
+                  onComplete={() => markAsRead(message.id)}
+                />
+              ) : (
+                <p>{message.text}</p>
+              )}
               <time>{message.time}</time>
             </div>
           </div>
         ))}
+        {isLoading && (
+          <div className="message-row bot">
+            <div className="avatar">🤖</div>
+            <div className="bubble loading">
+              <div className="dot-flashing"></div>
+            </div>
+          </div>
+        )}
       </div>
       <form className="chat-input-area" onSubmit={handleSubmit}>
         <input

@@ -138,6 +138,18 @@ export function useData(authToken, user) {
         setActiveTab('calendar')
     }
 
+    const fetchNutrients = async (period) => {
+        try {
+            const res = await fetch(`${API_BASE}/supplements/nutrients?period=${period}`)
+            if (res.ok) {
+                return await res.json()
+            }
+        } catch (e) {
+            console.error("Failed to fetch nutrients", e)
+        }
+        return []
+    }
+
     return {
         activeTab,
         setActiveTab,
@@ -163,6 +175,7 @@ export function useData(authToken, user) {
         handleToggleTodo,
         handleAddSupplement,
         handleAddCustomSupplement,
-        resetData
+        resetData,
+        fetchNutrients
     }
 }

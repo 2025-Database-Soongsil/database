@@ -1,60 +1,166 @@
 .mypage-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  
-  .mypage-header {
-    text-align: center;
-    margin-bottom: 30px;
-  }
-  .profile-icon { font-size: 40px; margin-bottom: 10px; background: white; width: 80px; height: 80px; line-height: 80px; border-radius: 50%; margin: 0 auto 10px; box-shadow: var(--shadow-soft); }
-  .mypage-header h2 { color: var(--bp-text); margin: 0; }
-  
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.mypage-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.profile-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+  background: white;
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  box-shadow: var(--shadow-soft);
+}
+
+.mypage-header h2 {
+  color: var(--bp-text);
+  margin: 0;
+}
+
+.mypage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.card-box {
+  background: white;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.card-box h3 {
+  margin: 0;
+  color: var(--bp-accent);
+  font-size: 18px;
+}
+
+.profile-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.save-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+/* 입력 필드 스타일 */
+.field-group {
+  margin-bottom: 16px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-group label {
+  display: block;
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.styled-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.styled-input:focus {
+  border-color: var(--bp-primary);
+}
+
+.styled-input.large {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--bp-primary);
+  text-align: center;
+}
+
+/* 리포트 카드 */
+.stat-row {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-item .label {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.stat-item .value {
+  font-size: 24px;
+  color: var(--bp-text);
+}
+
+.stat-item .value.plus {
+  color: var(--bp-accent);
+}
+
+.advice-box {
+  background: var(--bp-bg);
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.target-range {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 4px 0;
+}
+
+.message {
+  color: var(--bp-primary);
+  font-weight: bold;
+  margin: 0;
+  font-size: 15px;
+}
+
+/* 팁 리스트 */
+.tip-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tip-list li {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #555;
+  background: #fafafa;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
   .mypage-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    grid-template-columns: 1fr;
   }
-  
-  .card-box {
-    background: white;
-    padding: 24px;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
-  }
-  .card-box h3 { margin-top: 0; color: var(--bp-accent); font-size: 18px; margin-bottom: 20px; }
-  
-  /* 입력 필드 스타일 */
-  .field-group { margin-bottom: 16px; }
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .field-group label { display: block; font-size: 13px; color: #888; margin-bottom: 6px; }
-  .styled-input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    font-size: 15px;
-    box-sizing: border-box;
-  }
-  .styled-input:focus { border-color: var(--bp-primary); }
-  .styled-input.large { font-size: 20px; font-weight: bold; color: var(--bp-primary); text-align: center; }
-  
-  /* 리포트 카드 */
-  .stat-row { display: flex; justify-content: space-around; margin-bottom: 20px; }
-  .stat-item { text-align: center; }
-  .stat-item .label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
-  .stat-item .value { font-size: 24px; color: var(--bp-text); }
-  .stat-item .value.plus { color: var(--bp-accent); }
-  
-  .advice-box { background: var(--bp-bg); padding: 16px; border-radius: 12px; text-align: center; }
-  .target-range { font-size: 13px; color: #666; margin: 0 0 4px 0; }
-  .message { color: var(--bp-primary); font-weight: bold; margin: 0; font-size: 15px; }
-  
-  /* 팁 리스트 */
-  .tip-list { list-style: none; padding: 0; margin: 0; }
-  .tip-list li { margin-bottom: 10px; font-size: 14px; color: #555; background: #fafafa; padding: 10px; border-radius: 8px; }
-  
-  @media (max-width: 600px) {
-    .mypage-grid { grid-template-columns: 1fr; }
-  }
+}

@@ -1,33 +1,35 @@
+import { useState, useEffect } from 'react'
 import { getWeightStatus } from '../utils/helpers'
 import './MyPageTab.css' // CSS 파일 임포트
 
 
 
-const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange }) => {
+const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onLocalChange, onSave }) => {
   // 값이 입력되지 않았을 경우 0으로 처리하여 계산 오류 방지
-  const safeHeight = Number(height) || 0;
-  const safePreWeight = Number(preWeight) || 0;
-  const safeCurrentWeight = Number(currentWeight) || 0;
+  // Local state is used for display, so we keep it as string or number as entered
 
   const handleNumberInput = (field, value) => {
     // Allow empty
     if (value === '') {
-      onProfileChange(field, value)
+      onLocalChange(field, value)
       return
     }
     // Regex: Max 3 digits integer, optional 1 decimal place
     // Matches: 1, 12, 123, 1., 1.2, 12.3, 123.4
     if (/^\d{0,3}(\.\d{0,1})?$/.test(value)) {
-      onProfileChange(field, value)
+      onLocalChange(field, value)
     }
   }
 
   return (
     <section className="profile-card card-box">
-      <h3>신체 정보 입력 📝</h3>
+      <div className="profile-header-row">
+        <h3>신체 정보 입력 📝</h3>
+        <button className="primary-btn save-btn" onClick={onSave}>저장</button>
+      </div>
 
       <div className="field-group">
-        <label>닉네임</label>
+        <label>닉네임 (수정 불가)</label>
         <input
           name="nickname"
           value={nickname}
@@ -45,7 +47,7 @@ const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWei
               name="height"
               min="0"
               placeholder="-"
-              value={height > 0 ? height : ''}
+              value={height}
               onChange={(e) => handleNumberInput('height', e.target.value)}
               className="styled-input large"
             />
@@ -57,7 +59,7 @@ const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWei
               name="pre"
               min="0"
               placeholder="-"
-              value={preWeight > 0 ? preWeight : ''}
+              value={preWeight}
               onChange={(e) => handleNumberInput('pre', e.target.value)}
               className="styled-input large"
             />
@@ -72,7 +74,7 @@ const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWei
           name="current"
           min="0"
           placeholder="-"
-          value={currentWeight > 0 ? currentWeight : ''}
+          value={currentWeight}
           onChange={(e) => handleNumberInput('current', e.target.value)}
           className="styled-input large"
         />
@@ -137,6 +139,31 @@ const HealthReport = ({ height, preWeight, currentWeight }) => {
 }
 
 const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange }) => {
+  // Local state for editing
+  const [localHeight, setLocalHeight] = useState(height)
+  const [localPreWeight, setLocalPreWeight] = useState(preWeight)
+  const [localCurrentWeight, setLocalCurrentWeight] = useState(currentWeight)
+
+  // Sync local state if props change (e.g. after save or external update)
+  useEffect(() => {
+    setLocalHeight(height)
+    setLocalPreWeight(preWeight)
+    setLocalCurrentWeight(currentWeight)
+  }, [height, preWeight, currentWeight])
+
+  const handleLocalChange = (field, value) => {
+    if (field === 'height') setLocalHeight(value)
+    if (field === 'pre') setLocalPreWeight(value)
+    if (field === 'current') setLocalCurrentWeight(value)
+  }
+
+  const handleSave = () => {
+    onProfileChange('height', localHeight)
+    onProfileChange('pre', localPreWeight)
+    onProfileChange('current', localCurrentWeight)
+    alert('저장되었습니다.') // Simple feedback, or use Modal if available
+  }
+
   return (
     <div className="mypage-container">
       <header className="mypage-header">
@@ -148,15 +175,16 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
         <ProfileForm
           nickname={nickname}
           onNicknameChange={onNicknameChange}
-          height={height}
-          preWeight={preWeight}
-          currentWeight={currentWeight}
-          onProfileChange={onProfileChange}
+          height={localHeight}
+          preWeight={localPreWeight}
+          currentWeight={localCurrentWeight}
+          onLocalChange={handleLocalChange}
+          onSave={handleSave}
         />
         <HealthReport
-          height={height}
-          preWeight={preWeight}
-          currentWeight={currentWeight}
+          height={localHeight}
+          preWeight={localPreWeight}
+          currentWeight={localCurrentWeight}
         />
       </div>
     </div>

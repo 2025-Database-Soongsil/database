@@ -24,6 +24,11 @@ def catalog():
     return nutrient_catalog
 
 
+@router.get("/nutrients")
+def get_nutrients(period: str):
+    return storage.get_nutrients_by_period(period)
+
+
 @router.get("/active")
 def active(authorization: str = Header(None)):
     user = _user_from_header(authorization)
