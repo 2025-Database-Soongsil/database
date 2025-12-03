@@ -16,12 +16,16 @@ import {
 import { calculateStage, formatDate, generateId } from './utils/helpers'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
-const GOOGLE_CLIENT_ID =
-  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-  '508761663996-4hu8esf43jug8m677o8l5bkh5elhjchi.apps.googleusercontent.com'
-const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID || 'bb709df8328e550df323509b196c988a'
-const KAKAO_REDIRECT_URI =
-  import.meta.env.VITE_KAKAO_REDIRECT_URI || 'http://localhost:5173/login/oauth2/code/kakao'
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
+const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID
+const KAKAO_REDIRECT_URI = import.meta.env.VITE_KAKAO_REDIRECT_URI
+
+const requireEnv = (value, name) => {
+  if (!value) {
+    throw new Error(`${name} 환경 변수가 설정되어 있지 않습니다.`)
+  }
+  return value
+}
 
 function App() {
   const today = new Date()
@@ -140,9 +144,10 @@ function App() {
   const handleSocialLogin = async (provider) => {
     if (provider === 'Google') {
       try {
+        const clientId = requireEnv(GOOGLE_CLIENT_ID, 'VITE_GOOGLE_CLIENT_ID')
         await loadGoogleScript()
         window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
+          client_id: clientId,
           ux_mode: 'popup',
           callback: async (response) => {
             console.log('[GoogleLogin] credential response', response)
@@ -185,8 +190,10 @@ function App() {
         alert(err.message)
       }
     } else if (provider === 'Kakao') {
-      const authorizeUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(
-        KAKAO_REDIRECT_URI,
+      const clientId = requireEnv(KAKAO_CLIENT_ID, 'VITE_KAKAO_CLIENT_ID')
+      const redirectUri = requireEnv(KAKAO_REDIRECT_URI, 'VITE_KAKAO_REDIRECT_URI')
+      const authorizeUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+        redirectUri,
       )}&response_type=code`
       window.location.href = authorizeUrl
     }

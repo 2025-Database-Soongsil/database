@@ -10,10 +10,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://ssu_data:ssu_data_pass@ssu-database-2025.cte8uwka62k7.ap-northeast-2.rds.amazonaws.com:5432/ssu_database",
-)
+DEFAULT_DATABASE_URL = os.getenv("DATABASE_URL")
+if not DEFAULT_DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set. Add it to your environment or .env file.")
 
 
 @contextmanager

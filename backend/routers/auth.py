@@ -10,18 +10,21 @@ import requests
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-GOOGLE_CLIENT_ID = os.getenv(
-    "GOOGLE_CLIENT_ID",
-    "508761663996-4hu8esf43jug8m677o8l5bkh5elhjchi.apps.googleusercontent.com",
-)
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "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")
-KAKAO_CLIENT_ID = os.getenv("KAKAO_CLIENT_ID", "bb709df8328e550df323509b196c988a")
-KAKAO_CLIENT_SECRET = os.getenv("KAKAO_CLIENT_SECRET", "5GEvDYGzKkv70aPAO8q9La1btjUOHKni")
-KAKAO_REDIRECT_URI = os.getenv("KAKAO_REDIRECT_URI", "http://localhost:5173/login/oauth2/code/kakao")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+KAKAO_CLIENT_ID = os.getenv("KAKAO_CLIENT_ID")
+KAKAO_CLIENT_SECRET = os.getenv("KAKAO_CLIENT_SECRET")
+KAKAO_REDIRECT_URI = os.getenv("KAKAO_REDIRECT_URI")
 
 
 def _build_token(user_id: str):
     return f"token-{user_id}"
+
+
+def _require_env(var_name: str, value: str | None) -> str:
+    if not value:
+        raise HTTPException(status_code=500, detail=f"{var_name} is not configured.")
+    return value
 
 
 def _parse_token(token: str | None):
@@ -63,15 +66,15 @@ def social(payload: SocialLogin):
 @router.post("/google")
 def google_login(payload: GoogleLogin):
     # Supports both ID token (One Tap) and auth code (popup) flows.
+    google_client_id = _require_env("GOOGLE_CLIENT_ID", GOOGLE_CLIENT_ID)
     if payload.is_code:
-        if not GOOGLE_CLIENT_SECRET:
-            raise HTTPException(status_code=500, detail="GOOGLE_CLIENT_SECRET가 설정되어 있지 않습니다.")
+        google_client_secret = _require_env("GOOGLE_CLIENT_SECRET", GOOGLE_CLIENT_SECRET)
         token_resp = requests.post(
             "https://oauth2.googleapis.com/token",
             data={
                 "code": payload.credential,
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
+                "client_id": google_client_id,
+                "client_secret": google_client_secret,
                 "grant_type": "authorization_code",
                 "redirect_uri": "postmessage",
             },
@@ -84,12 +87,12 @@ def google_login(payload: GoogleLogin):
         if not id_token_value:
             raise HTTPException(status_code=401, detail="구글 ID 토큰을 받지 못했습니다.")
         try:
-            idinfo = id_token.verify_oauth2_token(id_token_value, grequests.Request(), GOOGLE_CLIENT_ID)
+            idinfo = id_token.verify_oauth2_token(id_token_value, grequests.Request(), google_client_id)
         except Exception:
             raise HTTPException(status_code=401, detail="구글 ID 토큰 검증에 실패했습니다.")
     else:
         try:
-            idinfo = id_token.verify_oauth2_token(payload.credential, grequests.Request(), GOOGLE_CLIENT_ID)
+            idinfo = id_token.verify_oauth2_token(payload.credential, grequests.Request(), google_client_id)
         except Exception:
             raise HTTPException(status_code=401, detail="유효하지 않은 구글 토큰입니다.")
 
@@ -107,10 +110,12 @@ def google_login(payload: GoogleLogin):
 @router.post("/kakao")
 def kakao_login(payload: KakaoLogin):
     # Exchange code for token
+    kakao_client_id = _require_env("KAKAO_CLIENT_ID", KAKAO_CLIENT_ID)
+    kakao_redirect_uri = _require_env("KAKAO_REDIRECT_URI", KAKAO_REDIRECT_URI)
     token_data = {
         "grant_type": "authorization_code",
-        "client_id": KAKAO_CLIENT_ID,
-        "redirect_uri": KAKAO_REDIRECT_URI,
+        "client_id": kakao_client_id,
+        "redirect_uri": kakao_redirect_uri,
         "code": payload.code,
     }
     if KAKAO_CLIENT_SECRET:
