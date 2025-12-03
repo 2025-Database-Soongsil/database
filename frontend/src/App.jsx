@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import AuthScreen from './components/AuthScreen'
 import CalendarTab from './components/CalendarTab'
@@ -11,9 +11,17 @@ import {
   partnerCalendarSamples,
   initialSupplements,
   initialTodos,
-  chatbotHints
+  chatbotHints,
 } from './data/presets'
 import { calculateStage, formatDate, generateId } from './utils/helpers'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+const GOOGLE_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  '508761663996-4hu8esf43jug8m677o8l5bkh5elhjchi.apps.googleusercontent.com'
+const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID || 'bb709df8328e550df323509b196c988a'
+const KAKAO_REDIRECT_URI =
+  import.meta.env.VITE_KAKAO_REDIRECT_URI || 'http://localhost:5173/login/oauth2/code/kakao'
 
 function App() {
   const today = new Date()
@@ -22,13 +30,14 @@ function App() {
   const [user, setUser] = useState({
     nickname: '준비맘',
     pregnant: false,
-    email: ''
+    email: '',
   })
+  const [authToken, setAuthToken] = useState(null)
   const [activeTab, setActiveTab] = useState('calendar')
   const [dates, setDates] = useState({ startDate: '', dueDate: '' })
   const [calendarMonth, setCalendarMonth] = useState({
     year: today.getFullYear(),
-    month: today.getMonth()
+    month: today.getMonth(),
   })
   const [selectedDate, setSelectedDate] = useState(formatDate(today))
   const [supplements, setSupplements] = useState(initialSupplements)
@@ -38,73 +47,199 @@ function App() {
     {
       id: 'chat-01',
       role: 'assistant',
-      text: '임신 준비 타임라인 정리가 필요하면 언제든 물어보세요.',
-      time: '지금'
-    }
+      text: '임신 준비 관련 궁금한 점을 물어보세요.',
+      time: '지금',
+    },
   ])
   const [height, setHeight] = useState('')
   const [preWeight, setPreWeight] = useState('')
   const [currentWeight, setCurrentWeight] = useState('')
   const [selectedNutrient, setSelectedNutrient] = useState(nutrientCatalog[0].id)
+  const googleScriptLoading = useRef(false)
+  const googleReady = useRef(false)
+  const kakaoHandled = useRef(false)
 
   const stage = useMemo(() => calculateStage(dates.startDate, dates.dueDate), [dates])
 
-// ----------------------------------------------------
-// 1. handleLogin 함수 추가 (로그인 처리)
-// ----------------------------------------------------
-  const handleLogin = (form) => {
-    // 실제 로그인 처리 로직이 여기에 들어갑니다. (이메일/비번 확인 등)
-    console.log('로그인 시도:', form.email)
-
-    setUser((prev) => ({
-      ...prev,
-      email: form.email,
-      nickname: form.nickname || prev.nickname,
-    }))
-    
-    setLoggedIn(true) // 👈 로그인 상태를 true로 설정
-  }
-  
-// ----------------------------------------------------
-// 2. handleSignup 함수 정의 (기존 handleAuthSubmit)
-// ----------------------------------------------------
-  const handleSignup = (form) => {
-    const nickname = form.nickname || user.nickname || '준비맘'
-    setUser({
-      nickname,
-      pregnant: form.pregnant,
-      email: form.email
-    })
-    if (form.dueDate) {
-      setDates((prev) => ({ ...prev, dueDate: form.dueDate }))
+  const handleLogin = async (form) => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      })
+      if (!res.ok) {
+        const txt = await res.text()
+        throw new Error(txt || '로그인 실패')
+      }
+      const data = await res.json()
+      const nickname = data.user?.nickname || user.nickname || '준비맘'
+      setUser({
+        nickname,
+        pregnant: Boolean(data.user?.pregnant),
+        email: data.user?.email ?? '',
+      })
+      const datesFromUser = data.user?.dates || {}
+      setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
+      setAuthToken(data.token)
+      setLoggedIn(true)
+    } catch (err) {
+      alert(err.message)
     }
-    setLoggedIn(true) // 회원가입 후 로그인 처리
   }
 
-  const handleSocialLogin = (provider) => {
-    setUser({
-      nickname: `${provider} 사용자`,
-      pregnant: false,
-      email: `${provider.toLowerCase()}@connected`
-    })
-    setLoggedIn(true)
-  }
-  // App.jsx 파일 내, 상태 정의 (useState) 아래나 핸들러 함수들 사이에 추가
-// calendarMonth 상태를 업데이트하는 함수가 필요합니다.
-
-const handleChangeMonth = (delta) => {
-  setCalendarMonth((prev) => {
-    const newMonth = prev.month + delta
-    const newDate = new Date(prev.year, newMonth, 1)
-    return {
-      year: newDate.getFullYear(),
-      month: newDate.getMonth(),
+  const handleSignup = async (form) => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+          nickname: form.nickname,
+          pregnant: form.pregnant,
+          due_date: form.dueDate || null,
+        }),
+      })
+      if (!res.ok) {
+        const txt = await res.text()
+        throw new Error(txt || '회원가입 실패')
+      }
+      const data = await res.json()
+      const nickname = data.user?.nickname || user.nickname || '준비맘'
+      setUser({
+        nickname,
+        pregnant: Boolean(data.user?.pregnant),
+        email: data.user?.email ?? '',
+      })
+      const datesFromUser = data.user?.dates || {}
+      setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
+      setAuthToken(data.token)
+      setLoggedIn(true)
+    } catch (err) {
+      alert(err.message)
     }
-  })
-}
+  }
 
-// ⚠️ 참고: `CalendarTab` 컴포넌트를 사용하는 곳(App.jsx 렌더링 부분)에서도 
-// 이 함수를 `onChangeMonth` prop으로 올바르게 전달하는지 확인해야 합니다.
+  const loadGoogleScript = () =>
+    new Promise((resolve, reject) => {
+      if (googleReady.current) return resolve()
+      if (googleScriptLoading.current) return reject(new Error('Google 스크립트 로딩 중입니다.'))
+      googleScriptLoading.current = true
+      const script = document.createElement('script')
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.onload = () => {
+        googleReady.current = true
+        resolve()
+      }
+      script.onerror = () => reject(new Error('Google 스크립트 로드 실패'))
+      document.head.appendChild(script)
+    })
+
+  const handleSocialLogin = async (provider) => {
+    if (provider === 'Google') {
+      try {
+        await loadGoogleScript()
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          ux_mode: 'popup',
+          callback: async (response) => {
+            console.log('[GoogleLogin] credential response', response)
+            if (!response.credential) {
+              console.error('[GoogleLogin] missing credential')
+              alert('Google 로그인 실패')
+              return
+            }
+            try {
+              const res = await fetch(`${API_BASE}/auth/google`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential: response.credential, is_code: false }),
+              })
+              console.log('[GoogleLogin] backend status', res.status)
+              if (!res.ok) {
+                const txt = await res.text()
+                console.error('[GoogleLogin] backend error body', txt)
+                throw new Error(txt || 'Google 로그인 실패')
+              }
+              const data = await res.json()
+              console.log('[GoogleLogin] success payload', data)
+              const nickname = data.user?.nickname || '준비맘'
+              setUser({
+                nickname,
+                pregnant: Boolean(data.user?.pregnant),
+                email: data.user?.email ?? '',
+              })
+              setAuthToken(data.token)
+              const datesFromUser = data.user?.dates || {}
+              setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
+              setLoggedIn(true)
+            } catch (err) {
+              alert(err.message)
+            }
+          },
+        })
+        window.google.accounts.id.prompt()
+      } catch (err) {
+        alert(err.message)
+      }
+    } else if (provider === 'Kakao') {
+      const authorizeUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(
+        KAKAO_REDIRECT_URI,
+      )}&response_type=code`
+      window.location.href = authorizeUrl
+    }
+  }
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const isKakaoCallback = url.pathname.includes('/login/oauth2/code/kakao')
+    const code = url.searchParams.get('code')
+    if (!isKakaoCallback || !code || kakaoHandled.current) return
+    kakaoHandled.current = true
+    const exchange = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/kakao`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        })
+        if (!res.ok) {
+          const txt = await res.text()
+          throw new Error(txt || 'Kakao 로그인 실패')
+        }
+        const data = await res.json()
+        const nickname = data.user?.nickname || '카카오 사용자'
+        setUser({
+          nickname,
+          pregnant: Boolean(data.user?.pregnant),
+          email: data.user?.email ?? '',
+        })
+        setAuthToken(data.token)
+        const datesFromUser = data.user?.dates || {}
+        setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
+        setLoggedIn(true)
+      } catch (err) {
+        alert(err.message)
+      } finally {
+        window.history.replaceState({}, document.title, '/')
+      }
+    }
+    exchange()
+  }, [])
+
+  const handleChangeMonth = (delta) => {
+    setCalendarMonth((prev) => {
+      const newMonth = prev.month + delta
+      const newDate = new Date(prev.year, newMonth, 1)
+      return {
+        year: newDate.getFullYear(),
+        month: newDate.getMonth(),
+      }
+    })
+  }
+
   const handleMonthChange = (offset) => {
     setCalendarMonth((prev) => {
       const date = new Date(prev.year, prev.month + offset, 1)
@@ -132,8 +267,8 @@ const handleChangeMonth = (delta) => {
         nutrient: nutrient.nutrient,
         schedule: supplement.schedule,
         stage: nutrient.stage,
-        notes: supplement.caution
-      }
+        notes: supplement.caution,
+      },
     ])
   }
 
@@ -145,23 +280,25 @@ const handleChangeMonth = (delta) => {
     const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
     const userMessage = { id: generateId(), role: 'user', text: message, time }
     const matchedHint = chatbotHints.find((hint) => message.includes(hint.keyword))
-    const reply = matchedHint?.reply ?? '지금 단계에 맞는 할 일과 알림을 자동으로 정리해 둘게요.'
+    const reply = matchedHint?.reply ?? '맞춤 답변을 준비 중입니다.'
     const assistantMessage = {
       id: `${generateId()}-assistant`,
       role: 'assistant',
       text: reply,
-      time: '방금'
+      time: '방금',
     }
     setChatMessages((prev) => [...prev, userMessage, assistantMessage])
   }
 
   const handleLogout = () => {
     setLoggedIn(false)
+    setAuthToken(null)
     setActiveTab('calendar')
   }
 
   const handleDelete = () => {
     setLoggedIn(false)
+    setAuthToken(null)
     setUser({ nickname: '준비맘', pregnant: false, email: '' })
     setDates({ startDate: '', dueDate: '' })
     setSupplements(initialSupplements)
@@ -173,22 +310,19 @@ const handleChangeMonth = (delta) => {
       {
         id: 'chat-reset',
         role: 'assistant',
-        text: '임신 준비 타임라인 정리가 필요하면 언제든 물어보세요.',
-        time: '지금'
-      }
+        text: '임신 준비 관련 궁금한 점을 물어보세요.',
+        time: '지금',
+      },
     ])
   }
 
-// ----------------------------------------------------
-// 3. AuthScreen 렌더링 수정
-// ----------------------------------------------------
   if (!loggedIn) {
     return (
-      <AuthScreen 
-        mode={authMode} 
-        onModeChange={setAuthMode} 
-        onSubmit={authMode === 'login' ? handleLogin : handleSignup} // 👈 수정된 부분
-        onSocialLogin={handleSocialLogin} 
+      <AuthScreen
+        mode={authMode}
+        onModeChange={setAuthMode}
+        onSubmit={authMode === 'login' ? handleLogin : handleSignup}
+        onSocialLogin={handleSocialLogin}
       />
     )
   }
@@ -198,14 +332,13 @@ const handleChangeMonth = (delta) => {
     { id: 'supplements', label: '영양제' },
     { id: 'mypage', label: '마이페이지' },
     { id: 'chatbot', label: '챗봇' },
-    { id: 'settings', label: '설정' }
+    { id: 'settings', label: '설정' },
   ]
 
   return (
     <div className="app-shell">
-      {/* 둥글고 예쁜 상단 네비게이션 */}
       <nav className="main-nav-bar">
-        <div className="nav-title">Baby Prep 💖</div>
+        <div className="nav-title">Baby Prep 대시보드</div>
         <div className="nav-tab-menu">
           {['calendar', 'supplements', 'mypage', 'chatbot', 'settings'].map((tab) => (
             <button
@@ -233,7 +366,7 @@ const handleChangeMonth = (delta) => {
             startDate={dates.startDate}
             dueDate={dates.dueDate}
             onSelectDate={setSelectedDate}
-            onChangeMonth={handleMonthChange} // 👈 이 부분도 함수 이름 통일
+            onChangeMonth={handleMonthChange}
             onAddTodo={handleAddTodo}
             onToggleTodo={handleToggleTodo}
             supplements={supplements}
@@ -244,8 +377,8 @@ const handleChangeMonth = (delta) => {
         {activeTab === 'supplements' && (
           <SupplementsTab
             catalog={nutrientCatalog}
-            selectedNutrient={stage.nutrient} // 기존 stage.nutrient 대신 임시로 '엽산' 등 기본값 필요
-            onSelectNutrient={() => { /* 기능 구현 필요 */}} 
+            selectedNutrient={selectedNutrient}
+            onSelectNutrient={setSelectedNutrient}
             onAddSupplement={handleAddSupplement}
             onAddCustom={handleAddCustomSupplement}
             activeSupplements={supplements}

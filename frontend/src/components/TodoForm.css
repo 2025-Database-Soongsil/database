@@ -1,0 +1,39 @@
+/* TodoForm.css */
+.todo-entry {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.todo-input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--bp-gray);
+    outline: none;
+    font-size: 14px;
+}
+.todo-input:focus {
+    border-color: var(--bp-primary);
+}
+
+.date-input {
+    flex: 0 0 120px;
+    padding: 10px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--bp-gray);
+    font-size: 14px;
+    color: var(--bp-text);
+}
+
+.add-btn {
+    background: var(--bp-primary);
+    color: var(--bp-card);
+    padding: 10px 15px;
+    border-radius: var(--radius-md);
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 4px 8px rgba(255, 143, 163, 0.2);
+}
+.add-btn:hover {
+    background: var(--bp-accent);
+}

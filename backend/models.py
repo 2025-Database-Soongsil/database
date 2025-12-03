@@ -19,6 +19,14 @@ class SocialLogin(BaseModel):
     provider: str
     token: str
 
+class GoogleLogin(BaseModel):
+    credential: str
+    is_code: bool = False
+
+
+class KakaoLogin(BaseModel):
+    code: str
+
 
 class Todo(BaseModel):
     id: str

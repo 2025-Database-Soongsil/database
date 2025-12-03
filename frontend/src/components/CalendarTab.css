@@ -1,0 +1,178 @@
+/* 레이아웃 */
+.calendar-layout {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .card-box {
+    background: var(--bp-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  /* 상단 스테이지 헤더 */
+  .stage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .stage-info h2 {
+    color: var(--bp-accent);
+    margin: 0 0 8px 0;
+  }
+  .d-day-badge {
+    display: inline-block;
+    background: var(--bp-primary);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .stage-timeline {
+    display: flex;
+    gap: 12px;
+  }
+  .timeline-item {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.5;
+  }
+  .timeline-item.active {
+    opacity: 1;
+    font-weight: bold;
+  }
+  .timeline-item .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin: 0 auto 4px;
+  }
+  
+  /* 메인 컨텐츠 (반응형: PC에선 좌우, 모바일에선 상하) */
+  .calendar-main {
+    display: grid;
+    grid-template-columns: 2fr 1fr; /* 달력 : 사이드패널 비율 */
+    gap: 20px;
+  }
+  @media (max-width: 768px) {
+    .calendar-main { grid-template-columns: 1fr; }
+  }
+  
+  /* 달력 상세 스타일 */
+  .calendar-header-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 18px;
+    color: var(--bp-text);
+  }
+  .calendar-header-nav button {
+    background: none;
+    font-size: 18px;
+    color: var(--bp-primary);
+  }
+  
+  .calendar-grid-view {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  .weekday-header {
+    text-align: center;
+    font-size: 13px;
+    color: #888;
+    padding-bottom: 10px;
+  }
+  
+  .day-cell {
+    aspect-ratio: 1; /* 정사각형 유지 */
+    background: #fdfdfd;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 8px;
+    border: 1px solid transparent;
+    position: relative;
+  }
+  .day-cell:hover {
+    background: var(--bp-bg);
+  }
+  .day-cell.other-month {
+    color: #ccc;
+    background: none;
+  }
+  .day-cell.selected {
+    border: 2px solid var(--bp-primary);
+    background: var(--bp-bg);
+  }
+  .day-cell.today .day-number {
+    background: var(--bp-accent);
+    color: white;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    border-radius: 50%;
+    display: block;
+    text-align: center;
+  }
+  
+  /* 달력 점(Dot) 스타일 */
+  .day-dots {
+    display: flex;
+    gap: 3px;
+    margin-top: 4px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .start-dot { background: #FFD700; }
+  .due-dot { background: #FF6B6B; }
+  .todo-dot { background: var(--bp-primary); }
+  
+  /* 오른쪽 패널 스타일 */
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--bp-bg);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+  .panel-header h3 { margin: 0; font-size: 16px; }
+  .count { background: var(--bp-bg); color: var(--bp-accent); padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+  
+  .todo-list-ui {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    min-height: 100px;
+  }
+  .todo-item {
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .todo-item label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .todo-item input { margin-right: 8px; accent-color: var(--bp-primary); }
+  .done { text-decoration: line-through; color: #aaa; }
+  .empty-msg { text-align: center; color: #aaa; padding-top: 30px; font-size: 13px; }
+  
+  /* 미니 영양제 리스트 */
+  .supplement-mini ul { list-style: none; padding: 0; }
+  .supplement-mini li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 13px;
+  }
+  .supplement-mini .time { color: var(--bp-primary); font-weight: 500; }
