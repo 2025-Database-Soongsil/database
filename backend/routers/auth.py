@@ -1,40 +1,11 @@
 from __future__ import annotations
-import os
 from fastapi import APIRouter, HTTPException, Header
-from google.oauth2 import id_token
-from google.auth.transport import requests as grequests
 from models import AuthSignup, AuthLogin, SocialLogin, GoogleLogin, KakaoLogin
 import storage
 import db
-import requests
+from services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-KAKAO_CLIENT_ID = os.getenv("KAKAO_CLIENT_ID")
-KAKAO_CLIENT_SECRET = os.getenv("KAKAO_CLIENT_SECRET")
-KAKAO_REDIRECT_URI = os.getenv("KAKAO_REDIRECT_URI")
-
-
-def _build_token(user_id: str):
-    return f"token-{user_id}"
-
-
-def _require_env(var_name: str, value: str | None) -> str:
-    if not value:
-        raise HTTPException(status_code=500, detail=f"{var_name} is not configured.")
-    return value
-
-
-def _parse_token(token: str | None):
-    if not token:
-        return None
-    token = token.replace("Bearer ", "")
-    if not token.startswith("token-"):
-        return None
-    return token.split("token-", 1)[1]
-
 
 @router.post("/signup")
 def signup(payload: AuthSignup):
@@ -43,16 +14,14 @@ def signup(payload: AuthSignup):
     user = storage.create_user(payload.email, payload.password, payload.nickname, payload.pregnant)
     if payload.due_date:
         storage.set_dates(user["id"], None, payload.due_date)
-    return {"token": _build_token(user["id"]), "user": user}
-
+    return {"token": auth_service.build_token(user["id"]), "user": user}
 
 @router.post("/login")
 def login(payload: AuthLogin):
     user = storage.get_user_by_email(payload.email)
     if not user or user["password"] != payload.password:
         raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다.")
-    return {"token": _build_token(user["id"]), "user": user}
-
+    return {"token": auth_service.build_token(user["id"]), "user": user}
 
 @router.post("/social")
 def social(payload: SocialLogin):
@@ -60,89 +29,25 @@ def social(payload: SocialLogin):
     user = storage.get_user_by_email(email)
     if not user:
         user = storage.create_user(email, payload.token, f"{payload.provider} 사용자")
-    return {"token": _build_token(user["id"]), "user": user}
-
+    return {"token": auth_service.build_token(user["id"]), "user": user}
 
 @router.post("/google")
 def google_login(payload: GoogleLogin):
-    # Supports both ID token (One Tap) and auth code (popup) flows.
-    google_client_id = _require_env("GOOGLE_CLIENT_ID", GOOGLE_CLIENT_ID)
-    if payload.is_code:
-        google_client_secret = _require_env("GOOGLE_CLIENT_SECRET", GOOGLE_CLIENT_SECRET)
-        token_resp = requests.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "code": payload.credential,
-                "client_id": google_client_id,
-                "client_secret": google_client_secret,
-                "grant_type": "authorization_code",
-                "redirect_uri": "postmessage",
-            },
-            timeout=5,
-        )
-        if token_resp.status_code != 200:
-            raise HTTPException(status_code=401, detail=f"구글 토큰 교환 실패: {token_resp.text}")
-        token_json = token_resp.json()
-        id_token_value = token_json.get("id_token")
-        if not id_token_value:
-            raise HTTPException(status_code=401, detail="구글 ID 토큰을 받지 못했습니다.")
-        try:
-            idinfo = id_token.verify_oauth2_token(id_token_value, grequests.Request(), google_client_id)
-        except Exception:
-            raise HTTPException(status_code=401, detail="구글 ID 토큰 검증에 실패했습니다.")
-    else:
-        try:
-            idinfo = id_token.verify_oauth2_token(payload.credential, grequests.Request(), google_client_id)
-        except Exception:
-            raise HTTPException(status_code=401, detail="유효하지 않은 구글 토큰입니다.")
-
+    idinfo = auth_service.verify_google_token(payload.credential, payload.is_code)
+    
     email = idinfo.get("email")
     social_id = idinfo.get("sub")
     if not email or not social_id:
         raise HTTPException(status_code=400, detail="구글 프로필에서 이메일을 가져올 수 없습니다.")
 
     nickname = idinfo.get("name") or email.split("@")[0]
-    user_record = db.upsert_social_user("google", social_id, email, nickname)
+    user_record = auth_service.handle_social_login("google", social_id, email, nickname)
     user = storage.ensure_user_cache(user_record)
-    return {"token": _build_token(str(user_record["id"])), "user": user}
-
+    return {"token": auth_service.build_token(str(user_record["id"])), "user": user}
 
 @router.post("/kakao")
 def kakao_login(payload: KakaoLogin):
-    # Exchange code for token
-    kakao_client_id = _require_env("KAKAO_CLIENT_ID", KAKAO_CLIENT_ID)
-    kakao_redirect_uri = _require_env("KAKAO_REDIRECT_URI", KAKAO_REDIRECT_URI)
-    token_data = {
-        "grant_type": "authorization_code",
-        "client_id": kakao_client_id,
-        "redirect_uri": kakao_redirect_uri,
-        "code": payload.code,
-    }
-    if KAKAO_CLIENT_SECRET:
-        token_data["client_secret"] = KAKAO_CLIENT_SECRET
-
-    token_resp = requests.post(
-        "https://kauth.kakao.com/oauth/token",
-        data=token_data,
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        timeout=5,
-    )
-    if token_resp.status_code != 200:
-        raise HTTPException(status_code=401, detail=f"카카오 토큰 발급 실패: {token_resp.text}")
-    token_json = token_resp.json()
-    access_token = token_json.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=401, detail="카카오 액세스 토큰을 받지 못했습니다.")
-
-    # Fetch user profile
-    profile_resp = requests.get(
-        "https://kapi.kakao.com/v2/user/me",
-        headers={"Authorization": f"Bearer {access_token}"},
-        timeout=5,
-    )
-    if profile_resp.status_code != 200:
-        raise HTTPException(status_code=401, detail=f"카카오 프로필 조회 실패: {profile_resp.text}")
-    profile = profile_resp.json()
+    profile = auth_service.verify_kakao_token(payload.code)
 
     social_id = str(profile.get("id"))
     kakao_account = profile.get("kakao_account", {}) or {}
@@ -151,14 +56,13 @@ def kakao_login(payload: KakaoLogin):
     nickname = profile_obj.get("nickname") or "카카오 사용자"
     email = email or f"{social_id}@kakao.connected"
 
-    user_record = db.upsert_social_user("kakao", social_id, email, nickname)
+    user_record = auth_service.handle_social_login("kakao", social_id, email, nickname)
     user = storage.ensure_user_cache(user_record)
-    return {"token": _build_token(str(user_record["id"])), "user": user}
-
+    return {"token": auth_service.build_token(str(user_record["id"])), "user": user}
 
 @router.delete("/me")
 def delete_me(authorization: str = Header(None)):
-    user_id = _parse_token(authorization)
+    user_id = auth_service.parse_token(authorization)
     if not user_id:
         raise HTTPException(status_code=401, detail="인증이 필요합니다.")
     # Best-effort DB delete
@@ -169,10 +73,9 @@ def delete_me(authorization: str = Header(None)):
     storage.reset_user(user_id)
     return {"ok": True}
 
-
 @router.post("/logout")
 def logout(authorization: str = Header(None)):
-    user_id = _parse_token(authorization)
+    user_id = auth_service.parse_token(authorization)
     if not user_id:
         raise HTTPException(status_code=401, detail="인증이 필요합니다.")
     return {"ok": True}

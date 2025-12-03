@@ -68,14 +68,124 @@ export default MyPageTab
 import { getWeightStatus } from '../utils/helpers'
 import './MyPageTab.css' // CSS 파일 임포트
 
-const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange }) => {
-  const result = getWeightStatus(height, preWeight, currentWeight)
-  
+import { getWeightStatus } from '../utils/helpers'
+import './MyPageTab.css'
+
+const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange }) => {
   // 값이 입력되지 않았을 경우 0으로 처리하여 계산 오류 방지
   const safeHeight = Number(height) || 0;
   const safePreWeight = Number(preWeight) || 0;
   const safeCurrentWeight = Number(currentWeight) || 0;
 
+  return (
+    <section className="profile-card card-box">
+      <h3>신체 정보 입력 📝</h3>
+
+      <div className="field-group">
+        <label>닉네임</label>
+        <input
+          name="nickname"
+          value={nickname}
+          onChange={(e) => onNicknameChange(e.target.value)}
+          className="styled-input"
+        />
+      </div>
+
+      <div className="field-group">
+        <div className="field-row">
+          <div>
+            <label>키(cm)</label>
+            <input
+              type="number"
+              name="height"
+              value={safeHeight}
+              onChange={(e) => onProfileChange('height', e.target.value)}
+              className="styled-input large"
+            />
+          </div>
+          <div>
+            <label>준비 전 체중(kg)</label>
+            <input
+              type="number"
+              name="pre"
+              value={safePreWeight}
+              onChange={(e) => onProfileChange('pre', e.target.value)}
+              className="styled-input large"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="field-group">
+        <label>현재 체중(kg)</label>
+        <input
+          type="number"
+          name="current"
+          value={safeCurrentWeight}
+          onChange={(e) => onProfileChange('current', e.target.value)}
+          className="styled-input large"
+        />
+      </div>
+    </section>
+  )
+}
+
+const HealthReport = ({ height, preWeight, currentWeight }) => {
+  const result = getWeightStatus(height, preWeight, currentWeight)
+  const safeHeight = Number(height) || 0;
+  const safePreWeight = Number(preWeight) || 0;
+  const safeCurrentWeight = Number(currentWeight) || 0;
+
+  if (safeHeight <= 0 || safePreWeight <= 0 || safeCurrentWeight <= 0 || !result) {
+    return (
+      <div className="report-column">
+        <section className="tips-card card-box">
+          <h3>💡 닥터스 노트</h3>
+          <ul className="tip-list">
+            <li>🌙 수면 패턴을 규칙적으로 유지하세요.</li>
+            <li>☕ 카페인은 하루 200mg(약 1잔) 이하로!</li>
+            <li>💧 하루 2L 물 마시기, 잊지 마세요.</li>
+          </ul>
+        </section>
+      </div>
+    )
+  }
+
+  return (
+    <div className="report-column">
+      <section className="report-card card-box">
+        <h3>체중 변화 분석 📊</h3>
+        <div className="stat-row">
+          <div className="stat-item">
+            <span className="label">현재 BMI</span>
+            <strong className="value">{result.bmi}</strong>
+          </div>
+          <div className="stat-item">
+            <span className="label">체중 변화</span>
+            <strong className={`value ${result.gained > 0 ? 'plus' : ''}`}>
+              {result.gained > 0 ? '+' : ''}{result.gained}kg
+            </strong>
+          </div>
+        </div>
+        <div className="advice-box">
+          <p className="target-range">권장 증가 범위: {result.target}</p>
+          <p className="message">{result.message}</p>
+        </div>
+      </section>
+
+      <section className="tips-card card-box">
+        <h3>💡 닥터스 노트</h3>
+        <ul className="tip-list">
+          <li>🌙 수면 패턴을 규칙적으로 유지하세요.</li>
+          <li>☕ 카페인은 하루 200mg(약 1잔) 이하로!</li>
+          <li>💧 하루 2L 물 마시기, 잊지 마세요.</li>
+        </ul>
+      </section>
+    </div>
+  )
+}
+
+const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange }) => {
   return (
     <div className="mypage-container">
       <header className="mypage-header">
@@ -84,90 +194,19 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
       </header>
 
       <div className="mypage-grid">
-        {/* 왼쪽: 신체 정보 입력 */}
-        <section className="profile-card card-box">
-          <h3>신체 정보 입력 📝</h3>
-          
-          <div className="field-group">
-            <label>닉네임</label>
-            <input 
-              name="nickname" 
-              value={nickname} 
-              onChange={(e) => onNicknameChange(e.target.value)} 
-              className="styled-input"
-            />
-          </div>
-
-          <div className="field-group">
-            <div className="field-row">
-                <div>
-                  <label>키(cm)</label>
-                  <input
-                    type="number"
-                    name="height"
-                    value={safeHeight}
-                    onChange={(e) => onProfileChange('height', e.target.value)}
-                    className="styled-input large"
-                  />
-                </div>
-                <div>
-                  <label>준비 전 체중(kg)</label>
-                  <input
-                    type="number"
-                    name="pre"
-                    value={safePreWeight}
-                    onChange={(e) => onProfileChange('pre', e.target.value)}
-                    className="styled-input large"
-                  />
-                </div>
-            </div>
-          </div>
-
-          <div className="field-group">
-            <label>현재 체중(kg)</label>
-            <input
-              type="number"
-              name="current"
-              value={safeCurrentWeight}
-              onChange={(e) => onProfileChange('current', e.target.value)}
-              className="styled-input large"
-            />
-          </div>
-        </section>
-
-        {/* 오른쪽: 결과 리포트 & 팁 */}
-        <div className="report-column">
-          {safeHeight > 0 && safePreWeight > 0 && safeCurrentWeight > 0 && result && (
-            <section className="report-card card-box">
-              <h3>체중 변화 분석 📊</h3>
-              <div className="stat-row">
-                <div className="stat-item">
-                  <span className="label">현재 BMI</span>
-                  <strong className="value">{result.bmi}</strong>
-                </div>
-                <div className="stat-item">
-                  <span className="label">체중 변화</span>
-                  <strong className={`value ${result.gained > 0 ? 'plus' : ''}`}>
-                    {result.gained > 0 ? '+' : ''}{result.gained}kg
-                  </strong>
-                </div>
-              </div>
-              <div className="advice-box">
-                <p className="target-range">권장 증가 범위: {result.target}</p>
-                <p className="message">{result.message}</p>
-              </div>
-            </section>
-          )}
-
-          <section className="tips-card card-box">
-            <h3>💡 닥터스 노트</h3>
-            <ul className="tip-list">
-              <li>🌙 수면 패턴을 규칙적으로 유지하세요.</li>
-              <li>☕ 카페인은 하루 200mg(약 1잔) 이하로!</li>
-              <li>💧 하루 2L 물 마시기, 잊지 마세요.</li>
-            </ul>
-          </section>
-        </div>
+        <ProfileForm
+          nickname={nickname}
+          onNicknameChange={onNicknameChange}
+          height={height}
+          preWeight={preWeight}
+          currentWeight={currentWeight}
+          onProfileChange={onProfileChange}
+        />
+        <HealthReport
+          height={height}
+          preWeight={preWeight}
+          currentWeight={currentWeight}
+        />
       </div>
     </div>
   )

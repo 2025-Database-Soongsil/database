@@ -4,6 +4,7 @@ from models import SupplementCreate, Supplement
 from presets import nutrient_catalog
 import storage
 import uuid
+from services import supplement_service
 
 router = APIRouter(prefix="/supplements", tags=["supplements"])
 
@@ -36,22 +37,8 @@ def add_recommended(nutrient_id: str, supplement_id: str, authorization: str = H
     user = _user_from_header(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
-    nutrient = next((item for item in nutrient_catalog if item["id"] == nutrient_id), None)
-    if not nutrient:
-        raise HTTPException(status_code=404, detail="영양소를 찾을 수 없습니다.")
-    supplement = next((item for item in nutrient["supplements"] if item["id"] == supplement_id), None)
-    if not supplement:
-        raise HTTPException(status_code=404, detail="영양제 옵션을 찾을 수 없습니다.")
-    payload = {
-        "id": f"{supplement_id}-{uuid.uuid4()}",
-        "name": supplement["name"],
-        "nutrient": nutrient["nutrient"],
-        "schedule": supplement["schedule"],
-        "stage": nutrient["stage"],
-        "notes": supplement.get("caution"),
-    }
-    storage.add_supplement(user["id"], payload)
-    return payload
+    
+    return supplement_service.add_recommended_supplement(user["id"], nutrient_id, supplement_id)
 
 
 @router.post("/custom")

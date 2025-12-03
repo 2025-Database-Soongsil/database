@@ -1,10 +1,44 @@
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from presets import stages
 
 
 def format_date(dt: datetime):
     return dt.strftime("%Y-%m-%d")
+
+
+def one_day() -> timedelta:
+    return timedelta(days=1)
+
+
+def step_cycle(cycle: str) -> timedelta:
+    if cycle == "daily":
+        return timedelta(days=1)
+    if cycle == "weekly":
+        return timedelta(weeks=1)
+    if cycle == "monthly":
+        return timedelta(days=30)
+    return timedelta(days=0)
+
+
+def cycle_days(days: int) -> timedelta:
+    return timedelta(days=days)
+
+
+def calculate_pregnancy_stage_label(target: date, start: date, due: date) -> str:
+    week = ((target - start).days // 7) + 1
+    return f"{week}주차"
+
+
+def calculate_period_phase(target: date, last_start: date) -> str:
+    diff = (target - last_start).days % 28
+    if diff < 5:
+        return "menstruation"
+    if diff < 14:
+        return "follicular"
+    if diff < 21:
+        return "ovulation"
+    return "luteal"
 
 
 def calculate_stage(start_date: str | None, due_date: str | None):
