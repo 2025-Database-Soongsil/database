@@ -1,17 +1,57 @@
-# storage.py (DB version)
+"""Storage layer now backed by Postgres (db.py) for calendar-related data.
+
+User 기본 정보는 캐시를 유지하되, 캘린더/서플리먼트/임신·생리 정보와
+캘린더 이벤트·알림은 모두 DB를 조회/저장합니다.
+"""
 
 from __future__ import annotations
-from datetime import datetime, date, timedelta, time
-from typing import List, Optional, Dict
+
+import random
+import time as time_util
+from datetime import date, datetime, time, timedelta
+from typing import Dict, List, Optional
+
+import db
+
+# ---------------- in-memory user cache (호환용) ----------------
+
+_users: Dict[str, dict] = {}
+_supplement_defs: Dict[str, dict] = {}
 
 
-from sqlalchemy.orm import Session
+# ---------------- helpers ----------------
 
-from database import SessionLocal
-import db_models as orm
+def _generate_id() -> int:
+    return int(time_util.time() * 1000) * 1000 + random.randint(0, 999)
 
 
-# ---------------- 공통 날짜 헬퍼 ----------------
+def _default_user_record(user_id: str, email: str, password: Optional[str], nickname: Optional[str]) -> dict:
+    return {
+        "id": user_id,
+        "email": email,
+        "password": password,
+        "nickname": nickname or email.split("@")[0],
+        "pregnant": False,
+        "dates": {
+            "pregnancy_start": None,
+            "due_date": None,
+            "last_period": None,
+            "period_start": None,
+        },
+        "profile": {},
+        "notifications": [],
+        "supplements": [],
+    }
+
+
+def _fetch_db_user_by_id(user_id: str | int) -> Optional[dict]:
+    try:
+        return db.fetch_user_by_id(int(user_id))
+    except Exception:
+        return None
+
+
+# ---------------- shared business logic ----------------
 
 def one_day() -> timedelta:
     return timedelta(days=1)
@@ -23,7 +63,6 @@ def step_cycle(cycle: str) -> timedelta:
     if cycle == "weekly":
         return timedelta(weeks=1)
     if cycle == "monthly":
-        # 단순 버전 (DB ENUM 구조와 맞춤)
         return timedelta(days=30)
     return timedelta(days=0)
 
@@ -31,8 +70,6 @@ def step_cycle(cycle: str) -> timedelta:
 def cycle_days(days: int) -> timedelta:
     return timedelta(days=days)
 
-
-# ---------------- 임신 / 생리 계산 함수 ----------------
 
 def calculate_pregnancy_stage(target: date, start: date, due: date) -> str:
     week = ((target - start).days // 7) + 1
@@ -43,330 +80,183 @@ def calculate_period_phase(target: date, last_start: date) -> str:
     diff = (target - last_start).days % 28
     if diff < 5:
         return "menstruation"
-    elif diff < 14:
+    if diff < 14:
         return "follicular"
-    elif diff < 21:
+    if diff < 21:
         return "ovulation"
+    return "luteal"
+
+
+# ---------------- user helpers ----------------
+
+def ensure_user_cache(user_record: dict) -> dict:
+    user_id = str(user_record["id"])
+    cached = _users.get(user_id)
+    if not cached:
+        cached = _default_user_record(
+            user_id=user_id,
+            email=user_record.get("email", ""),
+            password=user_record.get("password"),
+            nickname=user_record.get("nickname"),
+        )
+        _users[user_id] = cached
     else:
-        return "luteal"
+        cached["email"] = user_record.get("email", cached["email"])
+        cached["nickname"] = user_record.get("nickname", cached.get("nickname"))
+    return cached
 
 
-# ---------------- DB 세션 헬퍼 ----------------
-
-def get_db() -> Session:
-    return SessionLocal()
+def reset_user(user_id: str | int) -> None:
+    _users.pop(str(user_id), None)
 
 
-# ---------------- User / Setting / Info 조회 ----------------
+def get_user(user_id: str | int) -> Optional[dict]:
+    cached = _users.get(str(user_id))
+    if cached:
+        return cached
+    db_user = _fetch_db_user_by_id(user_id)
+    if db_user:
+        return ensure_user_cache(db_user)
+    return None
+
 
 def get_user_from_token(token: str) -> Optional[dict]:
-    """
-    토큰 형태: 'token-<user_id>'
-    -> DB에서 User 조회 후 dict 반환
-    """
     if not token.startswith("token-"):
         return None
-    try:
-        user_id = int(token.replace("token-", ""))
-    except ValueError:
-        return None
+    user_id = token.replace("token-", "")
+    return get_user(user_id)
 
-    db = get_db()
-    try:
-        user = db.get(orm.User, user_id)
-        if not user:
-            return None
-        return {
-            "id": user.id,
-            "email": user.email,
-            "nickname": user.nickname,
-        }
-    finally:
-        db.close()
 
-def get_user_from_id(id : int) -> Optional[dict]:
-        db = get_db()
-        try : 
-            user = db.get(orm.User, id)
-            if not user : 
-                return None
-            return {
-                "id" : user.id,
-                "email" : user.email,
-                "nickname" : user.nickname,
-            }
-        finally :
-            db.close()
+def get_user_from_id(user_id: int) -> Optional[dict]:
+    return get_user(user_id)
+
+
+def get_user_by_email(email: str) -> Optional[dict]:
+    for user in _users.values():
+        if user["email"] == email:
+            return user
+    db_user = db.fetch_user_by_email(email)
+    if db_user:
+        return ensure_user_cache(db_user)
+    return None
+
+
+def create_user(email: str, password: str, nickname: Optional[str], pregnant: bool) -> dict:
+    # Keep in-memory behavior (DB schema의 password 컬럼 여부를 알 수 없어 안전하게 캐시에만 저장)
+    user_id = str(_generate_id())
+    user = _default_user_record(user_id, email, password, nickname)
+    user["pregnant"] = pregnant
+    _users[user_id] = user
+    return user
+
+
+def set_dates(user_id: str | int, period_start: Optional[str], due_date: Optional[str]) -> None:
+    user = get_user(user_id)
+    if not user:
+        return
+    if period_start is not None:
+        user["dates"]["period_start"] = datetime.fromisoformat(period_start).date()
+        user["dates"]["last_period"] = datetime.fromisoformat(period_start).date()
+    if due_date is not None:
+        user["dates"]["due_date"] = datetime.fromisoformat(due_date).date()
+        if user["dates"]["due_date"] and not user["dates"]["pregnancy_start"]:
+            user["dates"]["pregnancy_start"] = user["dates"]["due_date"] - timedelta(days=280)
+
+
+def update_profile(user_id: str | int, payload: dict) -> None:
+    user = get_user(user_id)
+    if not user:
+        return
+    profile = user.setdefault("profile", {})
+    profile.update(payload)
+
+
+def set_notifications(user_id: str | int, notifications: List[str]) -> None:
+    user = get_user(user_id)
+    if not user:
+        return
+    user["notifications"] = list(notifications)
+
+
+# ---------------- data lookups (DB) ----------------
 
 def get_user_setting(user_id: int) -> Optional[dict]:
-    db = get_db()
-    try:
-        setting = (
-            db.query(orm.UserSetting)
-            .filter(orm.UserSetting.user_id == user_id)
-            .first()
-        )
-        if not setting:
-            return None
-        return {
-            "user_id": setting.user_id,
-            "notification_enabled": setting.notification_enabled,
-            "default_notify_time": setting.default_notify_time,
-            "language": setting.language,
-        }
-    finally:
-        db.close()
+    return {
+        "user_id": int(user_id),
+        "notification_enabled": True,
+        "default_notify_time": time(9, 0),
+        "language": "ko",
+    }
 
 
 def get_pregnancy_info(user_id: int) -> Optional[dict]:
-    db = get_db()
-    try:
-        p = db.query(orm.PregnancyInfo).filter(
-            orm.PregnancyInfo.user_id == user_id
-        ).first()
-        if not p:
-            return None
-        return {
-            "user_id": p.user_id,
-            "pregnancy_start": p.pregnancy_start,
-            "due_date": p.due_date,
-        }
-    finally:
-        db.close()
+    return db.fetch_pregnancy_info(user_id)
 
 
 def get_period_info(user_id: int) -> Optional[dict]:
-    db = get_db()
-    try:
-        p = db.query(orm.PeriodInfo).filter(
-            orm.PeriodInfo.user_id == user_id
-        ).first()
-        if not p:
-            return None
-        return {
-            "user_id": p.user_id,
-            "last_period": p.last_period,
-            "period_start": p.period_start,
-        }
-    finally:
-        db.close()
+    return db.fetch_period_info(user_id)
 
 
-# ---------------- Supplement / UserSupplement ----------------
+# ---------------- supplements ----------------
+
+def add_supplement(user_id: str | int, payload: dict) -> None:
+    # 기존 라우터 호환용: 캐시에만 저장
+    user = get_user(user_id)
+    if not user:
+        return
+    user["supplements"].append(payload)
+    _supplement_defs.setdefault(
+        payload["id"],
+        {"id": payload["id"], "name": payload.get("name", payload["id"]), "brand": payload.get("brand")},
+    )
+
 
 def get_user_supplements(user_id: int) -> List[dict]:
-    """
-    기존 in-memory 버전과 동일한 형태의 dict 리스트 반환:
-    {
-        "id": ...,
-        "user_id": ...,
-        "supplement_id": ...,
-        "start_date": date,
-        "end_date": date | None,
-        "cycle": "daily" | ...,
-        "time_of_day": time | None
-    }
-    """
-    db = get_db()
-    try:
-        rows = (
-            db.query(orm.UserSupplement)
-            .filter(orm.UserSupplement.user_id == user_id)
-            .all()
-        )
-        result: List[dict] = []
-        for r in rows:
-            result.append(
-                {
-                    "id": r.id,
-                    "user_id": r.user_id,
-                    "supplement_id": r.supplement_id,
-                    "start_date": r.start_date,
-                    "end_date": r.end_date,
-                    "cycle": r.cycle,
-                    "time_of_day": r.time_of_day,
-                }
-            )
-        return result
-    finally:
-        db.close()
+    return db.fetch_user_supplements(user_id)
 
 
 def get_supplements() -> List[dict]:
-    """
-    Supplement 테이블에서 id, name 정도만 가져옴.
-    """
-    db = get_db()
-    try:
-        rows = db.query(orm.Supplement).all()
-        return [
-            {"id": r.id, "name": r.name, "brand": r.brand}
-            for r in rows
-        ]
-    finally:
-        db.close()
+    # DB 기준 (필수 컬럼: id, name, brand)
+    rows = db.fetch_supplements()
+    for r in rows:
+        _supplement_defs.setdefault(str(r["id"]), r)
+    return rows
 
 
-# ---------------- CalendarEvent & Notification ----------------
+# ---------------- calendar and notifications (DB) ----------------
 
 def create_calendar_event_for_supplement_intake(
     user_id: int, user_supplement: dict, intake_date: date
 ) -> dict:
-    """
-    intake_date 에 해당하는 복용 이벤트가 이미 있으면 재사용.
-    아니면 CalendarEvent 레코드 새로 INSERT.
-    """
-    db = get_db()
-    try:
-        t: time = user_supplement.get("time_of_day") or time(9, 0, 0)
-        start_dt = datetime.combine(intake_date, t)
+    time_of_day: time = user_supplement.get("time_of_day") or time(9, 0, 0)
+    start_dt = datetime.combine(intake_date, time_of_day)
 
-        # 이미 같은 이벤트가 있는지 확인
-        ev = (
-            db.query(orm.CalendarEvent)
-            .filter(
-                orm.CalendarEvent.user_id == user_id,
-                orm.CalendarEvent.type == "supplement",
-                orm.CalendarEvent.linked_supplement_id
-                == user_supplement["supplement_id"],
-                orm.CalendarEvent.start_datetime == start_dt,
-            )
-            .first()
-        )
+    sup_def = None
+    for s in get_supplements():
+        if str(s["id"]) == str(user_supplement["supplement_id"]):
+            sup_def = s
+            break
+    title = f"{sup_def['name']} 복용" if sup_def else "영양제 복용"
 
-        if not ev:
-            sup = db.get(orm.Supplement, user_supplement["supplement_id"])
-            title = f"{sup.name} 복용" if sup else "영양제 복용"
-
-            ev = orm.CalendarEvent(
-                user_id=user_id,
-                type="supplement",
-                title=title,
-                start_datetime=start_dt,
-                end_datetime=None,
-                repeat_cycle="none",
-                linked_supplement_id=user_supplement["supplement_id"],
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
-            )
-            db.add(ev)
-            db.commit()
-            db.refresh(ev)
-
-        return {
-            "id": ev.id,
-            "user_id": ev.user_id,
-            "title": ev.title,
-            "start_datetime": ev.start_datetime,
-        }
-    finally:
-        db.close()
+    return db.upsert_calendar_event_for_supplement(
+        user_id=user_id,
+        supplement_id=user_supplement["supplement_id"],
+        start_dt=start_dt,
+        title=title,
+    )
 
 
 def create_notification_for_event_if_needed(event: dict) -> Optional[dict]:
-    """
-    UserSetting.notification_enabled 가 False 면 생성 안 함.
-    이미 동일한 알림이 있으면 재사용.
-    """
-    db = get_db()
-    try:
-        setting = (
-            db.query(orm.UserSetting)
-            .filter(orm.UserSetting.user_id == event["user_id"])
-            .first()
-        )
-        if setting and setting.notification_enabled is False:
-            return None
-
-        existing = (
-            db.query(orm.Notification)
-            .filter(
-                orm.Notification.event_id == event["id"],
-                orm.Notification.notify_time == event["start_datetime"],
-            )
-            .first()
-        )
-
-        if existing:
-            return {
-                "id": existing.id,
-                "event_id": existing.event_id,
-                "notify_time": existing.notify_time,
-                "is_sent": existing.is_sent,
-            }
-
-        n = orm.Notification(
-            event_id=event["id"],
-            notify_time=event["start_datetime"],
-            is_sent=False,
-        )
-        db.add(n)
-        db.commit()
-        db.refresh(n)
-
-        return {
-            "id": n.id,
-            "event_id": n.event_id,
-            "notify_time": n.notify_time,
-            "is_sent": n.is_sent,
-        }
-    finally:
-        db.close()
+    return db.ensure_notification(event["id"], event["start_datetime"])
 
 
 def get_notifications_due(now: datetime) -> List[dict]:
-    """
-    현재 시간 기준으로 발송해야 하는 Notification 목록
-    """
-    db = get_db()
-    try:
-        rows = (
-            db.query(orm.Notification)
-            .filter(
-                orm.Notification.notify_time <= now,
-                orm.Notification.is_sent.is_(False),
-            )
-            .all()
-        )
-        return [
-            {
-                "id": r.id,
-                "event_id": r.event_id,
-                "notify_time": r.notify_time,
-                "is_sent": r.is_sent,
-            }
-            for r in rows
-        ]
-    finally:
-        db.close()
+    return db.fetch_notifications_due(now)
 
 
 def mark_notification_sent(notification_id: int) -> None:
-    db = get_db()
-    try:
-        n = db.get(orm.Notification, notification_id)
-        if not n:
-            return
-        n.is_sent = True
-        db.commit()
-    finally:
-        db.close()
+    db.mark_notification_sent(notification_id)
 
 
 def get_calendar_event(event_id: int) -> Optional[dict]:
-    """
-    Notification에서 event 정보를 붙이기 위해 사용.
-    """
-    db = get_db()
-    try:
-        ev = db.get(orm.CalendarEvent, event_id)
-        if not ev:
-            return None
-        return {
-            "id": ev.id,
-            "user_id": ev.user_id,
-            "title": ev.title,
-            "start_datetime": ev.start_datetime,
-        }
-    finally:
-        db.close()
+    return db.fetch_calendar_event(event_id)

@@ -1,4 +1,8 @@
+from __future__ import annotations
+
+from datetime import datetime, time
 from typing import List, Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -18,6 +22,7 @@ class AuthLogin(BaseModel):
 class SocialLogin(BaseModel):
     provider: str
     token: str
+
 
 class GoogleLogin(BaseModel):
     credential: str
@@ -53,7 +58,7 @@ class SupplementCreate(BaseModel):
     name: str
     nutrient: Optional[str] = None
     schedule: str
-    stage: str = "사용자 지정"
+    stage: str = "custom"
     notes: Optional[str] = None
 
 
@@ -79,3 +84,24 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     matched: Optional[str] = None
+
+
+class SupplementInfo(BaseModel):
+    name: str
+    time: Optional[time] = None
+
+
+class CalendarDayInfo(BaseModel):
+    date: str
+    supplements: List[SupplementInfo] = Field(default_factory=list)
+    pregnancyPhase: Optional[str] = None
+    menstrualPhase: Optional[str] = None
+
+
+class NotificationOut(BaseModel):
+    id: int
+    event_id: int
+    notify_time: datetime
+    is_sent: bool
+    title: str
+    user_id: int
