@@ -68,8 +68,7 @@ export default MyPageTab
 import { getWeightStatus } from '../utils/helpers'
 import './MyPageTab.css' // CSS 파일 임포트
 
-import { getWeightStatus } from '../utils/helpers'
-import './MyPageTab.css'
+
 
 const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange }) => {
   // 값이 입력되지 않았을 경우 0으로 처리하여 계산 오류 방지
