@@ -13,7 +13,6 @@ from models import CalendarDayInfo, SupplementInfo
 import storage
 from datetime import date
 from typing import List
-import database
 
 router = APIRouter(prefix="/calendar", tags=["calendar"])
 

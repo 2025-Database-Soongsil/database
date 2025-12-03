@@ -1,8 +1,10 @@
-# notification_router.py (storage/in-memory version)
+# notification_router.py (DB-backed storage)
 
 from __future__ import annotations
+
 from datetime import datetime
 from typing import List
+
 from fastapi import APIRouter
 
 import storage
@@ -18,8 +20,9 @@ def get_due_notifications():
 
     result = []
     for n in notis:
-        # CalendarEvent 조회 (in-memory 리스트에서 찾아옴)
-        ev = next(ev for ev in storage._calendar_events if ev["id"] == n["event_id"])
+        ev = storage.get_calendar_event(n["event_id"])
+        if not ev:
+            continue
         result.append(
             NotificationOut(
                 id=n["id"],

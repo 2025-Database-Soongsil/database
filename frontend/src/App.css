@@ -1,10 +1,131 @@
+﻿/* App.css */
+
+:root {
+  /* Color Palette - ?묓겕? 遺?쒕윭????媛뺤“ */
+  --bp-bg: #ffffff;       /* ?꾩＜ ?고븳 ?묓겕 (諛곌꼍?? */
+  --bp-card: #FFFFFF;     /* 移대뱶/而⑦뀒?대꼫 諛곌꼍 (?곗깋) */
+  --bp-primary: #FF8FA3;  /* 硫붿씤 ?묓겕 (踰꾪듉, 媛뺤“) */
+  --bp-accent: #FF4D6D;   /* 吏꾪븳 ?묓겕 (?띿뒪??媛뺤“, ?쒖꽦 ?곹깭) */
+  --bp-text: #4A4A4A;     /* 媛?낆꽦???꾪븳 吏숈? ?뚯깋 */
+  --bp-gray: #E5E7EB;     /* 寃쎄퀎?? 鍮꾪솢???붿냼 */
+
+  /* Spacing & Radius - ?κ렐 ?먮굦 媛뺤“ */
+  --radius-xl: 30px;      
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  /* 遺?쒕윭??洹몃┝??*/
+  --shadow-soft: 0 10px 30px rgba(255, 143, 163, 0.15);
+}
+
+/* Base Styles */
 body {
+  background-color: var(--bp-bg);
+  color: var(--bp-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
   margin: 0;
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: all 0.2s;
+}
+
+/* 1. Main Layout & Navigation (App.jsx?먯꽌 ?ъ슜) */
+.app-shell {
+  max-width: 700px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bp-card);
+  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  overflow-x: hidden;
+}
+
+.app-content-area {
+  padding: 24px;
+}
+
+.main-nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bp-card);
+  padding: 20px 24px 0 24px;
+  border-bottom: 1px solid var(--bp-gray);
+}
+
+.nav-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--bp-accent);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.nav-tab-menu {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-tab-menu::-webkit-scrollbar { display: none; }
+
+.nav-tab-item {
+  flex-grow: 1;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  color: var(--bp-text);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.nav-tab-item:hover {
+  background: var(--bp-bg);
+}
+
+.nav-tab-item.active {
+  background: var(--bp-primary);
+  color: var(--bp-card);
+  box-shadow: 0 4px 10px rgba(255, 143, 163, 0.3);
+}
+
+/* 2. Common Card Style (紐⑤뱺 ??뿉???ъ궗?⑺븷 怨듯넻 移대뱶 ?ㅽ??? */
+.ui-card {
+  background: var(--bp-card);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+
+
+
+/*body {
+  margin: 0;
+  overflow-x: hidden;
   background: #f6f7fb;
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   color: #1c1c1c;
-}
+}*/
 
+/*
 .app-shell {
   min-height: 100vh;
   padding: 24px;
@@ -23,6 +144,7 @@ body {
 
 .app-header h1 {
   margin: 0;
+  overflow-x: hidden;
   font-size: 26px;
 }
 
@@ -181,6 +303,7 @@ main {
   list-style: none;
   padding: 0;
   margin: 0;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -530,7 +653,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(120deg, #ffe2f5, #e1e8ff);
+  background: var(--bp-bg);
   padding: 20px;
 }
 
@@ -544,6 +667,7 @@ main {
 
 .auth-card h1 {
   margin: 0;
+  overflow-x: hidden;
 }
 
 .auth-tabs {
