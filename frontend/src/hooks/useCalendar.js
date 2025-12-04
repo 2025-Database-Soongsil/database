@@ -81,6 +81,26 @@ export function useCalendar(authToken, user) {
         setTodos((prev) => prev.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)))
     }
 
+    const handleDeleteTodo = async (id) => {
+        // Optimistic update
+        setTodos((prev) => prev.filter((todo) => todo.id !== id))
+
+        if (authToken) {
+            try {
+                const res = await fetch(`${API_BASE}/calendar/events/${id}?user_id=${user.id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                })
+                if (!res.ok) {
+                    console.error("Failed to delete todo")
+                    // Revert if failed (optional, but good practice)
+                }
+            } catch (e) {
+                console.error("Failed to delete todo", e)
+            }
+        }
+    }
+
     const resetCalendar = () => {
         setTodos(initialTodos)
         setSelectedDate(
@@ -105,6 +125,7 @@ export function useCalendar(authToken, user) {
         setTodos,
         handleAddTodo,
         handleToggleTodo,
+        handleDeleteTodo,
         resetCalendar
     }
 }

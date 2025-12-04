@@ -25,7 +25,8 @@ function App() {
     socialLogin, logout, deleteAccount,
     registeringUser, socialRegister, cancelRegister,
     dates, updateNickname, updatePregnancy,
-    fetchDoctorsNotes, createDoctorsNote, deleteDoctorsNote, healthTips, refreshHealthTips
+    fetchDoctorsNotes, createDoctorsNote, deleteDoctorsNote, healthTips, refreshHealthTips,
+    fetchUserSupplements, addUserSupplement, deleteUserSupplement, deleteUserSupplementBySupplementId
   } = useAuth()
 
   const [activeTab, setActiveTab] = useState('calendar')
@@ -34,7 +35,7 @@ function App() {
   const {
     calendarMonth, handleMonthChange,
     selectedDate, setSelectedDate,
-    todos, handleAddTodo, handleToggleTodo,
+    todos, handleAddTodo, handleToggleTodo, handleDeleteTodo,
     resetCalendar
   } = useCalendar(authToken, user)
 
@@ -126,7 +127,9 @@ function App() {
               onChangeMonth={handleMonthChange}
               onAddTodo={handleAddTodo}
               onToggleTodo={handleToggleTodo}
+              onDeleteTodo={handleDeleteTodo}
               supplements={supplements}
+              fetchUserSupplements={fetchUserSupplements}
               partnerCalendarSamples={[]}
             />
           )}
@@ -140,6 +143,10 @@ function App() {
               onAddCustom={handleAddCustomSupplement}
               activeSupplements={supplements}
               fetchNutrients={fetchNutrients}
+              fetchUserSupplements={fetchUserSupplements}
+              addUserSupplement={addUserSupplement}
+              deleteUserSupplement={deleteUserSupplement}
+              deleteUserSupplementBySupplementId={deleteUserSupplementBySupplementId}
             />
           )}
 

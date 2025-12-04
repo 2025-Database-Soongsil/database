@@ -709,4 +709,50 @@ def fetch_random_tips(limit: int = 3) -> list[dict]:
         return cur.fetchall() or []
 
 
+# ---------------- User Supplements ----------------
+
+def add_user_supplement(user_id: int, supplement_id: int, cycle: str = 'daily', time_of_day: time = None) -> dict:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO "UserSupplement" (id, user_id, supplement_id, cycle, time_of_day, start_date) '
+            'VALUES (%s, %s, %s, %s, %s, NOW()) RETURNING *',
+            (_generate_id(), user_id, supplement_id, cycle, time_of_day)
+        )
+        return cur.fetchone()
+
+def fetch_user_supplements(user_id: int) -> list[dict]:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        # Join with Supplement table to get name
+        query = '''
+            SELECT us.*, s.name 
+            FROM "UserSupplement" us
+            JOIN "Supplement" s ON us.supplement_id = s.id
+            WHERE us.user_id = %s
+        '''
+        cur.execute(query, (user_id,))
+        return cur.fetchall() or []
+
+
+def delete_user_supplement(user_id: int, id: int) -> bool:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'DELETE FROM "UserSupplement" WHERE id = %s AND user_id = %s',
+            (id, user_id)
+        )
+        return cur.rowcount > 0
+
+
+def delete_user_supplement_by_supplement_id(user_id: int, supplement_id: int) -> bool:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'DELETE FROM "UserSupplement" WHERE supplement_id = %s AND user_id = %s',
+            (supplement_id, user_id)
+        )
+        return cur.rowcount > 0
+
+
 

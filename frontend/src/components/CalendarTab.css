@@ -246,14 +246,17 @@
 .todo-item {
   margin-bottom: 8px;
   font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.todo-item label {
+.todo-label {
   display: flex;
   align-items: center;
   cursor: pointer;
   word-break: break-all;
-  /* 긴 텍스트 줄바꿈 */
+  flex: 1;
 }
 
 .todo-item input {

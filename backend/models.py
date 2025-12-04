@@ -161,4 +161,10 @@ class Tip(BaseModel):
     content: str
 
 
+class UserSupplementCreate(BaseModel):
+    supplement_id: int
+    cycle: str = "daily"
+    time_of_day: Optional[time] = None
+
+
 

@@ -113,12 +113,12 @@ const CalendarTab = ({
 
 export default CalendarTab
 */
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import CalendarGrid from './CalendarGrid'
 import TodoForm from './TodoForm'
 import './CalendarTab.css'
 
-const TodoList = ({ selectedDate, todos, onAdd, onToggle }) => (
+const TodoList = ({ selectedDate, todos, onAdd, onToggle, onDelete }) => (
   <section className="day-detail card-box">
     <div className="panel-header">
       <h3>{selectedDate}의 할 일</h3>
@@ -129,7 +129,7 @@ const TodoList = ({ selectedDate, todos, onAdd, onToggle }) => (
       {todos.length === 0 && <li className="empty-msg">등록된 할 일이 없어요 🍃</li>}
       {todos.map((todo) => (
         <li key={todo.id} className="todo-item">
-          <label>
+          <label className="todo-label">
             <input
               type="checkbox"
               checked={todo.completed}
@@ -137,6 +137,13 @@ const TodoList = ({ selectedDate, todos, onAdd, onToggle }) => (
             />
             <span className={todo.completed ? 'done' : ''}>{todo.text}</span>
           </label>
+          <button
+            className="delete-btn minus-btn"
+            onClick={() => onDelete(todo.id)}
+            aria-label="Delete todo"
+          >
+            -
+          </button>
         </li>
       ))}
     </ul>
@@ -150,10 +157,10 @@ const SupplementList = ({ supplements }) => (
   <section className="supplement-mini card-box">
     <h3>💊 오늘의 영양제</h3>
     <ul className="supplement-list">
-      {supplements.slice(0, 3).map((sup) => (
+      {supplements.slice(0, 5).map((sup) => (
         <li key={sup.id}>
           <strong>{sup.name}</strong>
-          <span className="time">{sup.schedule}</span>
+          {/* Time removed as requested */}
         </li>
       ))}
     </ul>
@@ -187,9 +194,24 @@ const CalendarTab = ({
   onChangeMonth,
   onAddTodo,
   onToggleTodo,
-  supplements,
+  onDeleteTodo,
+  supplements, // Legacy prop, can be ignored or removed if unused
+  fetchUserSupplements,
   partnerCalendarSamples
 }) => {
+  const [mySupplements, setMySupplements] = useState([])
+
+  // Fetch user supplements on mount
+  useEffect(() => {
+    const loadSupplements = async () => {
+      if (fetchUserSupplements) {
+        const data = await fetchUserSupplements()
+        setMySupplements(data)
+      }
+    }
+    loadSupplements()
+  }, [fetchUserSupplements])
+
   const selectedTodos = useMemo(
     () => todos.filter((todo) => todo.date === selectedDate),
     [todos, selectedDate]
@@ -253,8 +275,9 @@ const CalendarTab = ({
             todos={selectedTodos}
             onAdd={onAddTodo}
             onToggle={onToggleTodo}
+            onDelete={onDeleteTodo}
           />
-          <SupplementList supplements={supplements} />
+          <SupplementList supplements={mySupplements} />
         </aside>
       </main>
 

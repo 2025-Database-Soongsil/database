@@ -390,6 +390,47 @@ export function useAuth() {
         setHealthTips(tips)
     }
 
+    const fetchUserSupplements = async () => {
+        if (!authToken) return []
+        const res = await fetch(`${API_BASE}/users/supplements`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        })
+        if (!res.ok) return []
+        return await res.json()
+    }
+
+    const addUserSupplement = async (supplementId, cycle = 'daily') => {
+        if (!authToken) return null
+        const res = await fetch(`${API_BASE}/users/supplements`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ supplement_id: supplementId, cycle })
+        })
+        if (!res.ok) throw new Error('Failed to add supplement')
+        return await res.json()
+    }
+
+    const deleteUserSupplement = async (id) => {
+        if (!authToken) return false
+        const res = await fetch(`${API_BASE}/users/supplements/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        })
+        return res.ok
+    }
+
+    const deleteUserSupplementBySupplementId = async (supplementId) => {
+        if (!authToken) return false
+        const res = await fetch(`${API_BASE}/users/supplements/by-supplement/${supplementId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        })
+        return res.ok
+    }
+
     return {
         loggedIn,
         user,
@@ -411,6 +452,10 @@ export function useAuth() {
         createDoctorsNote,
         deleteDoctorsNote,
         healthTips,
-        refreshHealthTips
+        refreshHealthTips,
+        fetchUserSupplements,
+        addUserSupplement,
+        deleteUserSupplement,
+        deleteUserSupplementBySupplementId
     }
 }

@@ -145,4 +145,55 @@ def get_tips():
     # but for now, let's make it public or require simple auth if the app structure demands it.
     # Given the context, it's likely called from MyPage where user is logged in.
     # But strictly speaking, tips don't depend on user ID.
+    # But strictly speaking, tips don't depend on user ID.
     return db.fetch_random_tips(3)
+
+
+@router.get("/supplements")
+def get_user_supplements(authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+    return db.fetch_user_supplements(user["id"])
+
+
+@router.post("/supplements")
+def add_user_supplement(payload: models.UserSupplementCreate, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+    
+    # Check if already added? (Optional, but good for UX)
+    # For now, just add it.
+    
+    result = db.add_user_supplement(
+        user["id"], 
+        payload.supplement_id, 
+        payload.cycle, 
+        payload.time_of_day
+    )
+    return result
+
+
+@router.delete("/supplements/{id}")
+def delete_user_supplement(id: int, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+        
+    success = db.delete_user_supplement(user["id"], id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Supplement not found")
+    return {"ok": True}
+
+
+@router.delete("/supplements/by-supplement/{supplement_id}")
+def delete_user_supplement_by_supplement_id(supplement_id: int, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+        
+    success = db.delete_user_supplement_by_supplement_id(user["id"], supplement_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Supplement not found")
+    return {"ok": True}

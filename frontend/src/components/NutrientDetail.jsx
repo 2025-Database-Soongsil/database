@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './SupplementsTab.css'
 
-const NutrientDetail = ({ current, onAddSupplement }) => {
+const NutrientDetail = ({ current, onToggleSupplement, mySupplements = [] }) => {
     const [isExpanded, setIsExpanded] = useState(false)
 
     // Reset expansion when nutrient changes
@@ -42,23 +42,26 @@ const NutrientDetail = ({ current, onAddSupplement }) => {
                 <h3>추천 제품 / 섭취 가이드</h3>
                 <div className="supplement-grid">
                     {visibleSupplements.length > 0 ? (
-                        visibleSupplements.map((supplement) => (
-                            <article key={supplement.id} className="supplement-card">
-                                <div className="card-header">
-                                    <h4>{supplement.name}</h4>
-                                    <button
-                                        className="add-btn"
-                                        onClick={() => onAddSupplement(current, supplement)}
-                                    >
-                                        내 캘린더에 담기 ＋
-                                    </button>
-                                </div>
-                                <p className="schedule-info">🕒 {supplement.schedule}</p>
-                                {supplement.caution && (
-                                    <p className="caution-info">⚠️ {supplement.caution}</p>
-                                )}
-                            </article>
-                        ))
+                        visibleSupplements.map((supplement) => {
+                            const isAdded = mySupplements.some(s => s.supplement_id === supplement.id)
+                            return (
+                                <article key={supplement.id} className={`supplement-card ${isAdded ? 'selected' : ''}`}>
+                                    <div className="card-header">
+                                        <h4>{supplement.name}</h4>
+                                        <button
+                                            className={`add-btn ${isAdded ? 'remove' : ''}`}
+                                            onClick={() => onToggleSupplement(current, supplement)}
+                                        >
+                                            {isAdded ? '제외 -' : '추가 ＋'}
+                                        </button>
+                                    </div>
+                                    <p className="schedule-info">🕒 {supplement.schedule}</p>
+                                    {supplement.caution && (
+                                        <p className="caution-info">⚠️ {supplement.caution}</p>
+                                    )}
+                                </article>
+                            )
+                        })
                     ) : (
                         <p className="empty-message">추천 제품 정보가 없습니다.</p>
                     )}
