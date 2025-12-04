@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { initialSupplements, nutrientCatalog } from '../data/presets'
+import { useState, useEffect } from 'react'
+import { nutrientCatalog, initialSupplements } from '../data/presets'
 import { generateId } from '../utils/helpers'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -38,6 +38,70 @@ export function useSupplements(authToken, user) {
         return []
     }
 
+    const fetchCustomSupplements = async (activeOnly = false) => {
+        if (!authToken) return []
+        try {
+            const query = activeOnly ? '?active=true' : ''
+            const res = await fetch(`${API_BASE}/users/custom-supplements${query}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            })
+            if (res.ok) return await res.json()
+        } catch (e) {
+            console.error(e)
+        }
+        return []
+    }
+
+    const addCustomSupplement = async (name, note) => {
+        if (!authToken) return null
+        try {
+            const res = await fetch(`${API_BASE}/users/custom-supplements`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ name, note })
+            })
+            if (res.ok) return await res.json()
+        } catch (e) {
+            console.error(e)
+        }
+        return null
+    }
+
+    const toggleCustomSupplement = async (id, enabled) => {
+        if (!authToken) return false
+        try {
+            const res = await fetch(`${API_BASE}/users/custom-supplements/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ enabled })
+            })
+            return res.ok
+        } catch (e) {
+            console.error(e)
+            return false
+        }
+    }
+
+    const deleteCustomSupplement = async (id) => {
+        if (!authToken) return false
+        try {
+            const res = await fetch(`${API_BASE}/users/custom-supplements/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            })
+            return res.ok
+        } catch (e) {
+            console.error(e)
+            return false
+        }
+    }
+
     const resetSupplements = () => {
         setSupplements(initialSupplements)
         setSelectedNutrient(nutrientCatalog[0].id)
@@ -51,6 +115,10 @@ export function useSupplements(authToken, user) {
         handleAddSupplement,
         handleAddCustomSupplement,
         fetchNutrients,
-        resetSupplements
+        resetSupplements,
+        fetchCustomSupplements,
+        addCustomSupplement,
+        deleteCustomSupplement,
+        toggleCustomSupplement
     }
 }

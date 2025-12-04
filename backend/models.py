@@ -167,4 +167,18 @@ class UserSupplementCreate(BaseModel):
     time_of_day: Optional[time] = None
 
 
+class CustomSupplement(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    note: Optional[str] = None
+    start_date: Optional[date] = None
+    is_active: bool = False
+
+
+class CustomSupplementCreate(BaseModel):
+    name: str
+    note: Optional[str] = None
+
+
 

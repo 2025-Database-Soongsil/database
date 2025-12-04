@@ -2,11 +2,9 @@ import { useState } from 'react'
 import { generateId } from '../utils/helpers'
 import './SupplementsTab.css'
 
-const CustomSupplementForm = ({ onAddCustom }) => {
+const CustomSupplementForm = ({ onAddCustom, onManage }) => {
     const [customForm, setCustomForm] = useState({
         name: '',
-        nutrient: '',
-        schedule: '',
         notes: ''
     })
 
@@ -15,20 +13,36 @@ const CustomSupplementForm = ({ onAddCustom }) => {
         setCustomForm((prev) => ({ ...prev, [name]: value }))
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!customForm.name || !customForm.schedule) return
-        onAddCustom({
-            id: generateId(),
-            ...customForm,
-            stage: '사용자 지정'
-        })
-        setCustomForm({ name: '', nutrient: '', schedule: '', notes: '' })
+        if (!customForm.name) return
+
+        // onAddCustom is expected to be an async function (API call)
+        await onAddCustom(customForm.name, customForm.notes)
+
+        setCustomForm({ name: '', notes: '' })
     }
 
     return (
         <section className="custom-section">
-            <h3>직접 등록하기 ✍️</h3>
+            <div className="custom-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3>직접 등록하기 ✍️</h3>
+                <button
+                    type="button"
+                    onClick={onManage}
+                    className="manage-btn"
+                    style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        border: '1px solid #ddd',
+                        background: '#fff',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem'
+                    }}
+                >
+                    관리
+                </button>
+            </div>
             <form onSubmit={handleSubmit} className="custom-form">
                 <div className="form-row">
                     <input
@@ -37,22 +51,9 @@ const CustomSupplementForm = ({ onAddCustom }) => {
                         value={customForm.name}
                         onChange={handleInput}
                         className="input-primary"
-                    />
-                    <input
-                        name="schedule"
-                        placeholder="복용 시간 (예: 아침 식후)"
-                        value={customForm.schedule}
-                        onChange={handleInput}
-                        className="input-primary"
+                        style={{ flex: 1 }}
                     />
                 </div>
-                <input
-                    name="nutrient"
-                    placeholder="관련 영양소 (선택)"
-                    value={customForm.nutrient}
-                    onChange={handleInput}
-                    className="input-secondary"
-                />
                 <textarea
                     name="notes"
                     placeholder="메모할 내용이 있나요?"
@@ -60,7 +61,7 @@ const CustomSupplementForm = ({ onAddCustom }) => {
                     onChange={handleInput}
                     className="input-area"
                 />
-                <button type="submit" className="submit-custom-btn">일정 추가하기</button>
+                <button type="submit" className="submit-custom-btn">추가하기</button>
             </form>
         </section>
     )

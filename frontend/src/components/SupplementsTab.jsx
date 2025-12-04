@@ -15,7 +15,10 @@ const SupplementsTab = ({
   fetchUserSupplements,
   addUserSupplement,
   deleteUserSupplement,
-  deleteUserSupplementBySupplementId
+  deleteUserSupplementBySupplementId,
+  fetchCustomSupplements,
+  deleteCustomSupplement,
+  toggleCustomSupplement
 }) => {
   const [activePeriod, setActivePeriod] = useState('prep_basic')
   const [nutrients, setNutrients] = useState([])
@@ -29,6 +32,43 @@ const SupplementsTab = ({
     onConfirm: null,
     type: 'alert'
   })
+
+  // Manage Custom Modal State
+  const [manageModalOpen, setManageModalOpen] = useState(false)
+  const [customList, setCustomList] = useState([])
+
+  const handleManageCustom = async () => {
+    if (fetchCustomSupplements) {
+      // Fetch ALL custom supplements for management
+      const data = await fetchCustomSupplements(false)
+      setCustomList(data)
+      setManageModalOpen(true)
+    }
+  }
+
+  const handleDeleteCustomItem = async (id) => {
+    if (deleteCustomSupplement) {
+      const success = await deleteCustomSupplement(id)
+      if (success) {
+        // Refresh list
+        const data = await fetchCustomSupplements(false)
+        setCustomList(data)
+        loadUserSupplements() // Also refresh main list as it might have been removed
+      } else {
+        alert('삭제 실패')
+      }
+    }
+  }
+
+  const handleActivateCustomItem = async (item) => {
+    if (item.is_active) return // Already active
+
+    if (toggleCustomSupplement) {
+      await toggleCustomSupplement(item.id, true)
+      setManageModalOpen(false)
+      loadUserSupplements()
+    }
+  }
 
   const periods = [
     { id: 'prep_basic', label: '기초 준비기' },
@@ -62,10 +102,20 @@ const SupplementsTab = ({
   }, [])
 
   const loadUserSupplements = async () => {
+    let combined = []
+
     if (fetchUserSupplements) {
-      const data = await fetchUserSupplements()
-      setMySupplements(data)
+      const standard = await fetchUserSupplements()
+      combined = [...combined, ...standard.map(s => ({ ...s, type: 'standard' }))]
     }
+
+    if (fetchCustomSupplements) {
+      // Fetch only active custom supplements for the schedule list
+      const custom = await fetchCustomSupplements(true)
+      combined = [...combined, ...custom.map(s => ({ ...s, type: 'custom' }))]
+    }
+
+    setMySupplements(combined)
   }
 
   const showModal = (title, message, onConfirm = null, type = 'alert') => {
@@ -74,8 +124,8 @@ const SupplementsTab = ({
   }
 
   const handleToggleSupplement = async (currentNutrient, supplement) => {
-    // Check if already added
-    const existing = mySupplements.find(s => s.supplement_id === supplement.id)
+    // Check if already added (only for standard supplements)
+    const existing = mySupplements.find(s => s.type === 'standard' && s.supplement_id === supplement.id)
 
     if (existing) {
       // Remove with confirmation
@@ -114,16 +164,29 @@ const SupplementsTab = ({
     }
   }
 
-  const handleDeleteClick = (id, name) => {
+  const handleDeleteClick = (item) => {
     showModal(
-      '영양제 삭제',
-      `'${name}'을(를) 목록에서 삭제하시겠습니까?`,
+      '영양제 제외',
+      `'${item.name}'을(를) 복용 목록에서 제외하시겠습니까?`,
       async () => {
-        if (deleteUserSupplement) {
-          await deleteUserSupplement(id)
-          loadUserSupplements()
-          setModalOpen(false)
+        if (item.type === 'custom') {
+          // For custom, we just deactivate it, not delete from DB
+          if (toggleCustomSupplement) {
+            const success = await toggleCustomSupplement(item.id, false)
+            if (success) {
+              // Force reload
+              await loadUserSupplements()
+            } else {
+              alert('상태 변경 실패')
+            }
+          }
+        } else {
+          if (deleteUserSupplement) {
+            await deleteUserSupplement(item.id)
+            await loadUserSupplements()
+          }
         }
+        setModalOpen(false)
       },
       'danger'
     )
@@ -184,14 +247,14 @@ const SupplementsTab = ({
         {mySupplements.length > 0 ? (
           <ul className="schedule-list">
             {mySupplements.map((item) => (
-              <li key={item.id} className="schedule-item">
+              <li key={`${item.type}-${item.id}`} className="schedule-item">
                 <div className="item-content">
                   <span className="dot"></span>
                   {item.name}
                 </div>
                 <button
                   className="delete-btn minus-btn"
-                  onClick={() => handleDeleteClick(item.id, item.name)}
+                  onClick={() => handleDeleteClick(item)}
                 >
                   -
                 </button>
@@ -204,7 +267,13 @@ const SupplementsTab = ({
       </section>
 
       {/* 4. Custom Form */}
-      <CustomSupplementForm onAddCustom={onAddCustom} />
+      <CustomSupplementForm onAddCustom={async (name, note) => {
+        await onAddCustom(name, note)
+        showModal(
+          '등록 완료',
+          '영양제가 등록되었습니다. [관리] 버튼을 눌러 복용 목록에 추가해주세요.'
+        )
+      }} onManage={handleManageCustom} />
 
       <Modal
         isOpen={modalOpen}
@@ -219,6 +288,64 @@ const SupplementsTab = ({
         cancelText={modalConfig.onConfirm ? "취소" : null}
         type={modalConfig.type}
       />
+
+      {/* Manage Custom Supplements Modal */}
+      <Modal
+        isOpen={manageModalOpen}
+        title="직접 등록한 영양제 관리"
+        onConfirm={() => setManageModalOpen(false)}
+        confirmText="닫기"
+      >
+        <div className="custom-list-container" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+          {customList.length > 0 ? (
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              {customList.map(item => (
+                <li
+                  key={item.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.8rem 0',
+                    borderBottom: '1px solid #eee',
+                    cursor: 'pointer',
+                    backgroundColor: item.is_active ? '#f0f9ff' : 'transparent'
+                  }}
+                  onClick={() => handleActivateCustomItem(item)}
+                >
+                  <div style={{ flex: 1, marginRight: '1rem', textAlign: 'left' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
+                      {item.name}
+                      {item.is_active && <span style={{ fontSize: '0.8rem', color: '#007bff', marginLeft: '0.5rem' }}>(복용중)</span>}
+                    </div>
+                    {item.note && <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.2rem' }}>{item.note}</div>}
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation() // Prevent row click
+                      handleDeleteCustomItem(item.id)
+                    }}
+                    style={{
+                      background: 'transparent',
+                      color: '#ff4d4f',
+                      border: 'none',
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      padding: '0 0.5rem',
+                      lineHeight: '1'
+                    }}
+                  >
+                    -
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p style={{ textAlign: 'center', color: '#999', padding: '2rem 0' }}>등록된 영양제가 없습니다.</p>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -236,24 +236,31 @@ export function useAuth() {
             })
             if (!res.ok) throw new Error('Failed to update pregnancy status')
 
-            setUser(prev => ({
-                ...prev,
+            // Update local state immediately
+            const updatedUser = {
+                ...user,
                 pregnant: isPregnant,
                 pregnancyDates: {
                     lastPeriodDate: payload.last_period_date,
                     dueDate: payload.due_date
                 }
-            }))
+            }
+
+            // Also update 'dates' state which is used by Calendar
+            const updatedDates = {
+                startDate: payload.last_period_date || '',
+                dueDate: payload.due_date || ''
+            }
+
+            setUser(updatedUser)
+            setDates(updatedDates)
 
             // Update local storage
             const saved = localStorage.getItem('bp-auth')
             if (saved) {
                 const parsed = JSON.parse(saved)
-                parsed.user.pregnant = isPregnant
-                parsed.user.pregnancyDates = {
-                    lastPeriodDate: payload.last_period_date,
-                    dueDate: payload.due_date
-                }
+                parsed.user = updatedUser
+                parsed.dates = updatedDates
                 localStorage.setItem('bp-auth', JSON.stringify(parsed))
             }
         } catch (e) {

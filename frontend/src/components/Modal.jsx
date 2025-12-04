@@ -1,14 +1,14 @@
 import { createPortal } from 'react-dom'
 import './Modal.css'
 
-const Modal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = '확인', cancelText, type = 'alert' }) => {
+const Modal = ({ isOpen, title, message, children, onConfirm, onCancel, confirmText = '확인', cancelText, type = 'alert' }) => {
     if (!isOpen) return null
 
     return createPortal(
         <div className="modal-overlay">
             <div className="modal-content">
                 {title && <h3>{title}</h3>}
-                <p>{message}</p>
+                {children ? children : <p>{message}</p>}
                 <div className="modal-actions">
                     <button
                         type="button"

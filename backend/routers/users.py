@@ -215,3 +215,44 @@ def analyze_weight_endpoint(payload: WeightAnalysisRequest, authorization: str =
         payload.weeks
     )
     return result
+
+
+@router.get("/custom-supplements")
+def get_custom_supplements(active: bool = False, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+    return db.fetch_custom_supplements(user["id"], active_only=active)
+
+
+@router.post("/custom-supplements")
+def add_custom_supplement(payload: models.CustomSupplementCreate, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+    
+    return db.add_custom_supplement(user["id"], payload.name, payload.note)
+
+
+@router.patch("/custom-supplements/{id}")
+def toggle_custom_supplement(id: int, payload: models.TogglePayload, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+        
+    success = db.toggle_custom_supplement(user["id"], id, payload.enabled)
+    if not success:
+        raise HTTPException(status_code=404, detail="Custom supplement not found")
+    return {"ok": True}
+
+
+@router.delete("/custom-supplements/{id}")
+def delete_custom_supplement(id: int, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+        
+    success = db.delete_custom_supplement(user["id"], id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Custom supplement not found")
+    return {"ok": True}

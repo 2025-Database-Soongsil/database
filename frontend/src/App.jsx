@@ -42,7 +42,7 @@ function App() {
   const {
     supplements, handleAddSupplement, handleAddCustomSupplement,
     selectedNutrient, setSelectedNutrient, fetchNutrients,
-    resetSupplements
+    resetSupplements, fetchCustomSupplements, addCustomSupplement, deleteCustomSupplement, toggleCustomSupplement
   } = useSupplements(authToken, user)
 
   const {
@@ -130,6 +130,7 @@ function App() {
               onDeleteTodo={handleDeleteTodo}
               supplements={supplements}
               fetchUserSupplements={fetchUserSupplements}
+              fetchCustomSupplements={fetchCustomSupplements}
               partnerCalendarSamples={[]}
               gender={user.gender}
             />
@@ -141,13 +142,16 @@ function App() {
               selectedNutrient={selectedNutrient}
               onSelectNutrient={setSelectedNutrient}
               onAddSupplement={handleAddSupplement}
-              onAddCustom={handleAddCustomSupplement}
+              onAddCustom={addCustomSupplement}
               activeSupplements={supplements}
               fetchNutrients={fetchNutrients}
               fetchUserSupplements={fetchUserSupplements}
               addUserSupplement={addUserSupplement}
               deleteUserSupplement={deleteUserSupplement}
               deleteUserSupplementBySupplementId={deleteUserSupplementBySupplementId}
+              fetchCustomSupplements={fetchCustomSupplements}
+              deleteCustomSupplement={deleteCustomSupplement}
+              toggleCustomSupplement={toggleCustomSupplement}
             />
           )}
 

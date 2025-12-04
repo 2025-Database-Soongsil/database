@@ -344,14 +344,6 @@ def update_user_pregnancy(user_id: int, is_pregnant: bool, last_period_date: dat
 
 # ---------------- Supplements & Health Info ----------------
 
-def fetch_user_supplements(user_id: int) -> list[dict]:
-    with get_conn() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            'select * from "UserSupplement" where user_id = %s',
-            (user_id,),
-        )
-        return cur.fetchall() or []
 
 
 def fetch_pregnancy_info(user_id: int) -> Optional[dict]:
@@ -623,33 +615,46 @@ def update_user_notification_toggle(user_id: int, enabled: bool) -> bool:
         return cur.rowcount > 0
 
 
-def add_custom_supplement(user_id: int, name: str, schedule: str = None, notes: str = None) -> dict:
+def add_custom_supplement(user_id: int, name: str, note: str = None) -> dict:
     with get_conn() as conn:
         cur = conn.cursor()
         cur.execute(
-            'INSERT INTO "CustomSupplement" (id, user_id, name, note) VALUES (%s, %s, %s, %s) RETURNING *',
-            (_generate_id(), user_id, name, f"Schedule: {schedule}\nNotes: {notes}")
+            'INSERT INTO "CustomSupplement" (id, user_id, name, note, start_date, is_active) VALUES (%s, %s, %s, %s, NOW(), FALSE) RETURNING *',
+            (_generate_id(), user_id, name, note)
         )
         return cur.fetchone()
 
 
-def add_user_supplement(user_id: int, supplement_id: int) -> dict:
+def toggle_custom_supplement(user_id: int, id: int, is_active: bool) -> bool:
     with get_conn() as conn:
         cur = conn.cursor()
-        # Check if already added
         cur.execute(
-            'SELECT * FROM "UserSupplement" WHERE user_id = %s AND supplement_id = %s',
-            (user_id, supplement_id)
+            'UPDATE "CustomSupplement" SET is_active = %s WHERE id = %s AND user_id = %s',
+            (is_active, id, user_id)
         )
-        existing = cur.fetchone()
-        if existing:
-            return existing
-            
+        return cur.rowcount > 0
+
+
+def delete_custom_supplement(user_id: int, id: int) -> bool:
+    with get_conn() as conn:
+        cur = conn.cursor()
         cur.execute(
-            'INSERT INTO "UserSupplement" (id, user_id, supplement_id, start_date) VALUES (%s, %s, %s, NOW()) RETURNING *',
-            (_generate_id(), user_id, supplement_id)
+            'DELETE FROM "CustomSupplement" WHERE id = %s AND user_id = %s',
+            (id, user_id)
         )
-        return cur.fetchone()
+        return cur.rowcount > 0
+
+
+def fetch_custom_supplements(user_id: int, active_only: bool = False) -> list:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        if active_only:
+            cur.execute('SELECT * FROM "CustomSupplement" WHERE user_id = %s AND is_active = TRUE', (user_id,))
+        else:
+            cur.execute('SELECT * FROM "CustomSupplement" WHERE user_id = %s', (user_id,))
+        return cur.fetchall()
+
+
 
 
 def fetch_user_profile(user_id: int) -> dict:
@@ -659,11 +664,6 @@ def fetch_user_profile(user_id: int) -> dict:
         return cur.fetchone()
 
 
-def fetch_custom_supplements(user_id: int) -> list:
-    with get_conn() as conn:
-        cur = conn.cursor()
-        cur.execute('SELECT * FROM "CustomSupplement" WHERE user_id = %s', (user_id,))
-        return cur.fetchall()
 
 
 # ---------------- Doctor's Note ----------------

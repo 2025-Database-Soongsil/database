@@ -197,6 +197,7 @@ const CalendarTab = ({
   onDeleteTodo,
   supplements, // Legacy prop, can be ignored or removed if unused
   fetchUserSupplements,
+  fetchCustomSupplements,
   partnerCalendarSamples,
   gender
 }) => {
@@ -205,13 +206,19 @@ const CalendarTab = ({
   // Fetch user supplements on mount
   useEffect(() => {
     const loadSupplements = async () => {
+      let combined = []
       if (fetchUserSupplements) {
-        const data = await fetchUserSupplements()
-        setMySupplements(data)
+        const standard = await fetchUserSupplements()
+        combined = [...combined, ...standard]
       }
+      if (fetchCustomSupplements) {
+        const custom = await fetchCustomSupplements(true)
+        combined = [...combined, ...custom]
+      }
+      setMySupplements(combined)
     }
     loadSupplements()
-  }, [fetchUserSupplements])
+  }, [fetchUserSupplements, fetchCustomSupplements])
 
   const selectedTodos = useMemo(
     () => todos.filter((todo) => todo.date === selectedDate),

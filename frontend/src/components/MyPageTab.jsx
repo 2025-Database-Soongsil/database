@@ -473,6 +473,7 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
   const [localCurrentWeight, setLocalCurrentWeight] = useState(currentWeight || '')
   const [localLastPeriod, setLocalLastPeriod] = useState(pregnancyDates?.lastPeriodDate || '')
   const [localDueDate, setLocalDueDate] = useState(pregnancyDates?.dueDate || '')
+  const [localIsPregnant, setLocalIsPregnant] = useState(isPregnant || false)
   const [modalState, setModalState] = useState({
     isOpen: false,
     title: '',
@@ -486,7 +487,10 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
     setLocalCurrentWeight(currentWeight || '')
     setLocalLastPeriod(pregnancyDates?.lastPeriodDate || '')
     setLocalDueDate(pregnancyDates?.dueDate || '')
-  }, [height, preWeight, currentWeight, pregnancyDates])
+    // Only sync isPregnant if it's true, or if we want to enforce it. 
+    // If the user just saved, we expect the prop to match what we sent.
+    setLocalIsPregnant(isPregnant || false)
+  }, [height, preWeight, currentWeight, pregnancyDates, isPregnant])
 
   // Refresh health tips when LEAVING MyPage (to prevent flicker on enter)
   useEffect(() => {
@@ -504,28 +508,17 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
   }
 
   const handlePregnancyChange = (checked) => {
-    onPregnancyChange(checked, {
-      lastPeriodDate: localLastPeriod,
-      dueDate: localDueDate
-    })
+    setLocalIsPregnant(checked)
   }
 
   const handleDateChange = (field, value) => {
     if (field === 'lastPeriod') setLocalLastPeriod(value)
     if (field === 'dueDate') setLocalDueDate(value)
-
-    // Auto-save dates if pregnant is checked
-    if (isPregnant) {
-      onPregnancyChange(true, {
-        lastPeriodDate: field === 'lastPeriod' ? value : localLastPeriod,
-        dueDate: field === 'dueDate' ? value : localDueDate
-      })
-    }
   }
 
   const handleSave = async () => {
     // Validate pregnancy dates if pregnant
-    if (isPregnant) {
+    if (localIsPregnant) {
       if (!localLastPeriod || !localDueDate) {
         setModalState({
           isOpen: true,
@@ -534,6 +527,14 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
         })
         return
       }
+    }
+
+    // Save Pregnancy Info
+    if (onPregnancyChange) {
+      await onPregnancyChange(localIsPregnant, {
+        lastPeriodDate: localLastPeriod,
+        dueDate: localDueDate
+      })
     }
 
     // onProfileChange updates local state in App.jsx (optional if we reload from API)
@@ -632,7 +633,7 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
         onLocalChange={handleLocalChange}
         onSave={handleSave}
         gender={gender}
-        isPregnant={isPregnant}
+        isPregnant={localIsPregnant}
         onPregnancyChange={handlePregnancyChange}
         lastPeriodDate={localLastPeriod}
         dueDate={localDueDate}

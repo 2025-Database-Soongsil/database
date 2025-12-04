@@ -361,10 +361,15 @@
   width: 100%;
   margin-top: 16px;
   padding: 14px;
-  background: var(--bp-text);
+  background: var(--bp-primary);
   color: white;
-  border-radius: 10px;
-  font-weight: bold;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.submit-custom-btn:hover {
+  filter: brightness(0.95);
 }
 
 /* 반응형 */
