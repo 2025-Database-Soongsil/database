@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import random
 import time
@@ -58,11 +59,33 @@ def _generate_id() -> int:
 
 # ---------------- User & Auth ----------------
 
+def _attach_user_details(user: dict) -> dict:
+    if not user:
+        return None
+    
+    user_id = user["id"]
+    with get_conn() as conn:
+        cur = conn.cursor()
+        
+        # Fetch PregnancyInfo
+        cur.execute('SELECT * FROM "PregnancyInfo" WHERE user_id = %s', (user_id,))
+        pregnancy_info = cur.fetchone()
+        user["pregnancy_info"] = dict(pregnancy_info) if pregnancy_info else {}
+        
+        # Fetch UserProfile
+        cur.execute('SELECT * FROM "UserProfile" WHERE user_id = %s', (user_id,))
+        profile = cur.fetchone()
+        user["profile"] = dict(profile) if profile else {}
+        
+    return user
+
+
 def fetch_user_by_email(email: str) -> Optional[dict]:
     with get_conn() as conn:
         cur = conn.cursor()
         cur.execute('select * from "User" where email = %s limit 1', (email,))
-        return cur.fetchone()
+        user = cur.fetchone()
+        return _attach_user_details(dict(user)) if user else None
 
 
 def fetch_user_by_social(provider: str, social_id: str) -> Optional[dict]:
@@ -72,7 +95,8 @@ def fetch_user_by_social(provider: str, social_id: str) -> Optional[dict]:
             'select * from "User" where provider = %s and social_id = %s limit 1',
             (provider, social_id),
         )
-        return cur.fetchone()
+        user = cur.fetchone()
+        return _attach_user_details(dict(user)) if user else None
 
 
 def upsert_social_user(provider: str, social_id: str, email: str, nickname: str) -> dict:
@@ -97,7 +121,8 @@ def upsert_social_user(provider: str, social_id: str, email: str, nickname: str)
                 'values (%s, %s, %s, %s, %s, %s, now(), now()) returning *',
                 (_generate_id(), email, provider, social_id, nickname, False),
             )
-        return cur.fetchone()
+        user = cur.fetchone()
+        return _attach_user_details(dict(user)) if user else None
 
 
 def create_social_user_with_profile(
@@ -107,6 +132,8 @@ def create_social_user_with_profile(
     nickname: str, 
     gender: str,
     is_pregnant: bool = False,
+    last_period_date: date = None,
+    due_date: date = None,
     height: int = None,
     weight: float = None
 ) -> dict:
@@ -122,21 +149,72 @@ def create_social_user_with_profile(
         )
         user = cur.fetchone()
         
-        # Insert UserProfile if height or weight provided
+        # Insert Profile if needed
         if height is not None or weight is not None:
-            cur.execute(
-                'INSERT INTO "UserProfile" (user_id, height, current_weight, updated_at) VALUES (%s, %s, %s, NOW())',
-                (user_id, height, weight)
-            )
+            # Check if exists (unlikely for new user, but safe)
+            cur.execute('SELECT user_id FROM "UserProfile" WHERE user_id = %s', (user_id,))
+            if cur.fetchone():
+                cur.execute(
+                    'UPDATE "UserProfile" SET height = COALESCE(%s, height), current_weight = COALESCE(%s, current_weight), updated_at = NOW() WHERE user_id = %s',
+                    (height, weight, user_id)
+                )
+            else:
+                cur.execute(
+                    'INSERT INTO "UserProfile" (user_id, height, current_weight, initial_weight, updated_at) VALUES (%s, %s, %s, %s, NOW())',
+                    (user_id, height, weight, weight)
+                )
+
+        # Insert Pregnancy Info if needed
+        if is_pregnant and (last_period_date or due_date):
+            from datetime import timedelta
+            # Calculate ovulation_week_start if pregnancy_start is provided (LMP + 14 days)
+            ovulation_week_start = None
+            if last_period_date:
+                ovulation_week_start = last_period_date + timedelta(days=14)
+
+            cur.execute('SELECT user_id FROM "PregnancyInfo" WHERE user_id = %s', (user_id,))
+            if cur.fetchone():
+                cur.execute(
+                    'UPDATE "PregnancyInfo" SET due_date = COALESCE(%s, due_date), pregnancy_start = COALESCE(%s, pregnancy_start), ovulation_week_start = COALESCE(%s, ovulation_week_start), updated_at = NOW() WHERE user_id = %s',
+                    (due_date, last_period_date, ovulation_week_start, user_id)
+                )
+            else:
+                cur.execute(
+                    'INSERT INTO "PregnancyInfo" (user_id, due_date, pregnancy_start, ovulation_week_start, created_at, updated_at) VALUES (%s, %s, %s, %s, NOW(), NOW())',
+                    (user_id, due_date, last_period_date, ovulation_week_start)
+                )
+        
+        # Construct return object manually since transaction isn't committed yet
+        # so _attach_user_details (new connection) won't see the data
+        user_dict = dict(user)
+        
+        user_dict["profile"] = {}
+        if height is not None or weight is not None:
+            user_dict["profile"] = {
+                "user_id": user_id,
+                "height": height,
+                "current_weight": weight,
+                "initial_weight": weight
+            }
             
-        return user
+        user_dict["pregnancy_info"] = {}
+        if is_pregnant and (last_period_date or due_date):
+            user_dict["pregnancy_info"] = {
+                "user_id": user_id,
+                "pregnancy_start": last_period_date,
+                "due_date": due_date,
+                "ovulation_week_start": ovulation_week_start
+            }
+            
+        return user_dict
 
 
 def fetch_user_by_id(user_id: str | int) -> Optional[dict]:
     with get_conn() as conn:
         cur = conn.cursor()
         cur.execute('select * from "User" where id = %s limit 1', (user_id,))
-        return cur.fetchone()
+        user = cur.fetchone()
+        return _attach_user_details(dict(user)) if user else None
 
 
 def delete_user_by_id(user_id: str | int) -> bool:
@@ -185,19 +263,26 @@ def create_user_email(email: str, password: str, nickname: str, pregnant: bool) 
 
 
 def upsert_pregnancy_info(user_id: int, due_date: date = None, pregnancy_start: date = None) -> None:
+    from datetime import timedelta
+    
+    # Calculate ovulation_week_start if pregnancy_start is provided (LMP + 14 days)
+    ovulation_week_start = None
+    if pregnancy_start:
+        ovulation_week_start = pregnancy_start + timedelta(days=14)
+
     with get_conn() as conn:
         cur = conn.cursor()
         # Check if exists
         cur.execute('SELECT user_id FROM "PregnancyInfo" WHERE user_id = %s', (user_id,))
         if cur.fetchone():
             cur.execute(
-                'UPDATE "PregnancyInfo" SET due_date = COALESCE(%s, due_date), pregnancy_start = COALESCE(%s, pregnancy_start), updated_at = NOW() WHERE user_id = %s',
-                (due_date, pregnancy_start, user_id)
+                'UPDATE "PregnancyInfo" SET due_date = COALESCE(%s, due_date), pregnancy_start = COALESCE(%s, pregnancy_start), ovulation_week_start = COALESCE(%s, ovulation_week_start), updated_at = NOW() WHERE user_id = %s',
+                (due_date, pregnancy_start, ovulation_week_start, user_id)
             )
         else:
             cur.execute(
-                'INSERT INTO "PregnancyInfo" (user_id, due_date, pregnancy_start, created_at, updated_at) VALUES (%s, %s, %s, NOW(), NOW())',
-                (user_id, due_date, pregnancy_start)
+                'INSERT INTO "PregnancyInfo" (user_id, due_date, pregnancy_start, ovulation_week_start, created_at, updated_at) VALUES (%s, %s, %s, %s, NOW(), NOW())',
+                (user_id, due_date, pregnancy_start, ovulation_week_start)
             )
 
 
@@ -243,13 +328,17 @@ def update_user_nickname(user_id: int, nickname: str) -> bool:
         return cur.rowcount > 0
 
 
-def update_user_pregnancy(user_id: int, is_pregnant: bool) -> bool:
+def update_user_pregnancy(user_id: int, is_pregnant: bool, last_period_date: date = None, due_date: date = None) -> bool:
     with get_conn() as conn:
         cur = conn.cursor()
         cur.execute(
             'UPDATE "User" SET is_pregnant = %s, updated_at = NOW() WHERE id = %s',
             (is_pregnant, user_id)
         )
+        
+        if is_pregnant and (last_period_date or due_date):
+            upsert_pregnancy_info(user_id, pregnancy_start=last_period_date, due_date=due_date)
+            
         return cur.rowcount > 0
 
 
@@ -575,3 +664,49 @@ def fetch_custom_supplements(user_id: int) -> list:
         cur = conn.cursor()
         cur.execute('SELECT * FROM "CustomSupplement" WHERE user_id = %s', (user_id,))
         return cur.fetchall()
+
+
+# ---------------- Doctor's Note ----------------
+
+def fetch_doctors_notes(user_id: int) -> list[dict]:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'SELECT * FROM "DoctorsNote" WHERE user_id = %s ORDER BY visit_date DESC, created_at DESC',
+            (user_id,)
+        )
+        return cur.fetchall() or []
+
+
+def create_doctors_note(user_id: int, content: str, visit_date: date = None) -> dict:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'INSERT INTO "DoctorsNote" (id, user_id, content, visit_date, created_at, updated_at) '
+            'VALUES (%s, %s, %s, %s, NOW(), NOW()) RETURNING *',
+            (_generate_id(), user_id, content, visit_date)
+        )
+        return cur.fetchone()
+
+
+def delete_doctors_note(note_id: int, user_id: int) -> bool:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'DELETE FROM "DoctorsNote" WHERE id = %s AND user_id = %s',
+            (note_id, user_id)
+        )
+        return cur.rowcount > 0
+
+
+# ---------------- Tips ----------------
+
+def fetch_random_tips(limit: int = 3) -> list[dict]:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        # Use RANDOM() for PostgreSQL to get random rows
+        cur.execute('SELECT * FROM "Tip" ORDER BY RANDOM() LIMIT %s', (limit,))
+        return cur.fetchall() or []
+
+
+

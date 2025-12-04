@@ -88,7 +88,7 @@ const SupplementsTab = ({
 
       {/* 3. Active Supplements / Schedule */}
       <section className="my-schedule-section">
-        <h4>내 복용 일정 💊</h4>
+        <h4>복용중인 영양제 💊</h4>
         {activeSupplements.length > 0 ? (
           <ul className="schedule-list">
             {activeSupplements.map((item) => (

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from fastapi import APIRouter, Header, HTTPException
-from models import ProfilePayload, PregnancyPayload
+from models import ProfilePayload, PregnancyPayload, DoctorsNoteCreate
+import models
 from utils import weight_status
 import db
 
@@ -81,7 +82,12 @@ def update_pregnancy(payload: PregnancyPayload, authorization: str = Header(None
     if not user:
         raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
     
-    success = db.update_user_pregnancy(user["id"], payload.is_pregnant)
+    success = db.update_user_pregnancy(
+        user["id"], 
+        payload.is_pregnant,
+        last_period_date=payload.last_period_date,
+        due_date=payload.due_date
+    )
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update pregnancy status")
         
@@ -98,3 +104,45 @@ def notifications(notifications: list[str], authorization: str = Header(None)):
     # But UserSetting has default_notify_time.
     # Let's just return success for now as it's likely unused.
     return {"notifications": notifications}
+    return {"notifications": notifications}
+
+
+@router.get("/notes")
+def get_notes(authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+    return db.fetch_doctors_notes(user["id"])
+
+
+@router.post("/notes")
+def create_note(payload: models.DoctorsNoteCreate, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+    
+    note = db.create_doctors_note(user["id"], payload.content, payload.visit_date)
+    return note
+
+
+@router.delete("/notes/{note_id}")
+def delete_note(note_id: int, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+        
+    success = db.delete_doctors_note(note_id, user["id"])
+    if not success:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"ok": True}
+
+
+@router.get("/tips")
+def get_tips():
+    # Tips are public, no auth required (or maybe auth required? let's keep it open or auth optional)
+    # User didn't specify, but usually tips are generic.
+    # Let's require auth just to be consistent with other endpoints if needed, 
+    # but for now, let's make it public or require simple auth if the app structure demands it.
+    # Given the context, it's likely called from MyPage where user is logged in.
+    # But strictly speaking, tips don't depend on user ID.
+    return db.fetch_random_tips(3)

@@ -24,7 +24,8 @@ function App() {
     loggedIn,
     socialLogin, logout, deleteAccount,
     registeringUser, socialRegister, cancelRegister,
-    dates, updateNickname, updatePregnancy
+    dates, updateNickname, updatePregnancy,
+    fetchDoctorsNotes, createDoctorsNote, deleteDoctorsNote, healthTips, refreshHealthTips
   } = useAuth()
 
   const [activeTab, setActiveTab] = useState('calendar')
@@ -59,7 +60,10 @@ function App() {
   const { chatMessages, sendMessage, resetChat, isLoading, markAsRead } = useChatbot(authToken)
 
   // Derived State
-  const stage = useMemo(() => calculateStage(dates.startDate, dates.dueDate), [dates])
+  const stage = useMemo(() => {
+    if (!user.pregnant) return calculateStage(null, null)
+    return calculateStage(dates.startDate, dates.dueDate)
+  }, [dates, user.pregnant])
 
   // Handlers
   const handleLogout = () => {
@@ -154,7 +158,13 @@ function App() {
               onSaveProfile={saveProfile}
               gender={user.gender}
               isPregnant={user.pregnant}
+              pregnancyDates={user.pregnancyDates}
               onPregnancyChange={updatePregnancy}
+              fetchDoctorsNotes={fetchDoctorsNotes}
+              createDoctorsNote={createDoctorsNote}
+              deleteDoctorsNote={deleteDoctorsNote}
+              healthTips={healthTips}
+              refreshHealthTips={refreshHealthTips}
             />
           )}
 

@@ -206,22 +206,30 @@ const CalendarTab = ({
     <div className="calendar-layout">
       <section className="stage-card card-box" style={{
         background: stageColorMap[stage.label] || '#F9FBE7',
-        border: `1px solid ${stage.color}`
+        border: `1px solid ${stage.color || '#E0E0E0'}`
       }}>
         <div className="stage-info">
           <h2>{stage.label}</h2>
           <p>{stage.description}</p>
-          {typeof stage.daysUntil === 'number' && stage.daysUntil >= 0 && (
-            <span className="d-day-badge">D-{stage.daysUntil}</span>
-          )}
         </div>
-        <div className="stage-timeline">
-          {stage.timeline.map((item) => (
-            <div key={item.id} className={`timeline-item ${item.active ? 'active' : ''}`}>
-              <strong>{item.label}</strong>
-              <span>{item.range}</span>
-            </div>
-          ))}
+
+        <div className="dashboard-grid">
+          <div className="dash-item">
+            <span className="dash-label">D-Day</span>
+            <strong className="dash-value accent">
+              {stage.daysUntil !== null ? `D-${stage.daysUntil}` : '-'}
+            </strong>
+          </div>
+          <div className="dash-item">
+            <span className="dash-label">현재 주수</span>
+            <strong className="dash-value">
+              {stage.weeks}주 {stage.days}일
+            </strong>
+          </div>
+          <div className="dash-item">
+            <span className="dash-label">아기 크기</span>
+            <strong className="dash-value">{stage.babySize}</strong>
+          </div>
         </div>
       </section>
 

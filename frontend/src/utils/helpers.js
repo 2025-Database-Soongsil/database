@@ -13,42 +13,54 @@ export const calculateStage = (startDate, dueDate) => {
   if (!startDate || !dueDate) {
     return {
       label: '일정을 입력해주세요',
-      description: '임신 준비 시작일과 예정일을 입력하면 자동으로 단계가 계산돼요.',
+      description: '마이페이지에서 임신 정보를 입력하면\n맞춤 정보를 알려드려요!',
       daysUntil: null,
-      daysToDue: null,
-      timeline: stages.map((stage) => ({ ...stage, active: false }))
+      weeks: 0,
+      days: 0,
+      babySize: '?',
+      dueDate: '-'
     }
   }
 
   const today = new Date()
   const start = new Date(startDate)
-  const dayDiff = Math.ceil((start.getTime() - today.getTime()) / 86400000)
   const due = new Date(dueDate)
+
+  // Calculate D-Day
   const daysToDue = Math.ceil((due.getTime() - today.getTime()) / 86400000)
 
-  let label = ''
-  let description = ''
+  // Calculate Current Week/Day (Pregnancy starts from LMP)
+  const daysSinceStart = Math.floor((today.getTime() - start.getTime()) / 86400000)
+  const weeks = Math.floor(daysSinceStart / 7)
+  const days = daysSinceStart % 7
 
-  if (dayDiff > 90) {
-    label = '기초 준비기'
-    description = '몸 상태를 가볍게 정비하면서 생활 습관을 조정하면 좋아요.'
-  } else if (dayDiff > 30) {
-    label = '집중 준비기'
-    description = '배란 주기를 일정하게 유지하고 필요한 검진 일정을 챙겨볼까요?'
-  } else if (dayDiff >= 0) {
-    label = '임박기'
-    description = '배란 주간이에요. 휴식과 수분 섭취, 일정한 수면 리듬을 신경 써주세요.'
+  let label = ''
+  let description = `출산 예정일: ${formatDate(due)}`
+  let babySize = '작은 씨앗'
+
+  if (weeks < 4) {
+    label = '임신 초기'
+    babySize = '양귀비 씨앗'
+  } else if (weeks < 12) {
+    label = '임신 초기'
+    babySize = '라임'
+  } else if (weeks < 28) {
+    label = '임신 중기'
+    babySize = '옥수수'
   } else {
-    label = '임신 진행 중'
-    description = '임신 주차 정보를 기반으로 영양과 검사 일정을 관리해요.'
+    label = '임신 후기'
+    babySize = '수박'
   }
 
-  const timeline = stages.map((stage) => ({
-    ...stage,
-    active: stage.label === label
-  }))
-
-  return { label, description, daysUntil: dayDiff, daysToDue, timeline }
+  return {
+    label,
+    description,
+    daysUntil: daysToDue,
+    weeks: weeks > 0 ? weeks : 0,
+    days: days > 0 ? days : 0,
+    babySize,
+    dueDate: formatDate(due)
+  }
 }
 
 export const getWeightStatus = (height, prePregWeight, currentWeight) => {

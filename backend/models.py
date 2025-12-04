@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import datetime, time, date
 from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
@@ -40,6 +40,8 @@ class SocialSignup(BaseModel):
     nickname: str
     gender: str # 'male' or 'female' (required)
     is_pregnant: Optional[bool] = False
+    last_period_date: Optional[date] = None
+    due_date: Optional[date] = None
     height: Optional[int] = None
     weight: Optional[float] = None # current_weight
 
@@ -115,6 +117,8 @@ class ChatResponse(BaseModel):
 
 class PregnancyPayload(BaseModel):
     is_pregnant: bool
+    last_period_date: Optional[date] = None
+    due_date: Optional[date] = None
 
 
 class SupplementInfo(BaseModel):
@@ -137,3 +141,24 @@ class NotificationOut(BaseModel):
     is_sent: bool
     title: str
     user_id: int
+
+
+class DoctorsNote(BaseModel):
+    id: int
+    user_id: int
+    content: str
+    visit_date: Optional[date] = None
+    created_at: datetime
+
+
+class DoctorsNoteCreate(BaseModel):
+    content: str
+    visit_date: Optional[date] = None
+
+
+class Tip(BaseModel):
+    id: int
+    content: str
+
+
+

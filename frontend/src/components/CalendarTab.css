@@ -30,40 +30,44 @@
   margin: 0 0 8px 0;
 }
 
-.d-day-badge {
-  display: inline-block;
-  background: var(--bp-primary);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: bold;
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  flex: 1;
+  min-width: 300px;
 }
 
-.stage-timeline {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  /* 타임라인 아이템 줄바꿈 허용 */
-  justify-content: flex-end;
-}
-
-.timeline-item {
+.dash-item {
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
   text-align: center;
-  font-size: 12px;
-  opacity: 0.5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.timeline-item.active {
-  opacity: 1;
+.dash-label {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.dash-value {
+  font-size: 18px;
+  color: var(--bp-text);
   font-weight: bold;
 }
 
-.timeline-item .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin: 0 auto 4px;
+.dash-value.accent {
+  color: var(--bp-primary);
+  font-size: 20px;
+}
+
+@media (max-width: 600px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 

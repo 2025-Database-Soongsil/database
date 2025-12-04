@@ -1,5 +1,5 @@
 .mypage-container {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -26,11 +26,7 @@
   margin: 0;
 }
 
-.mypage-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
+
 
 .card-box {
   background: white;
@@ -143,6 +139,108 @@
   font-size: 15px;
 }
 
+/* 닥터스 노트 섹션 */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.note-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.note-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.note-item:last-child {
+  margin-bottom: 0;
+}
+
+.note-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-date {
+  font-size: 12px;
+  color: #888;
+  font-weight: 500;
+}
+
+.note-content {
+  font-size: 15px;
+  color: var(--bp-text);
+  line-height: 1.4;
+}
+
+.delete-btn.minus-btn {
+  background: #ffecb3;
+  border: none;
+  color: #d32f2f;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-btn.minus-btn:hover {
+  background: #ffc107;
+  transform: scale(1.1);
+}
+
+.primary-btn.small {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 20px;
+}
+
+/* Note Modal */
+.note-modal {
+  max-width: 400px;
+  /* 더 넓게 확장 */
+  width: 95%;
+  /* 양쪽 여백 최소화 */
+}
+
+.note-modal .input-group {
+  margin-bottom: 16px;
+}
+
+.note-modal .styled-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 날짜 입력칸은 너무 넓지 않게 조정 */
+.note-modal input[type="date"].styled-input {
+  width: auto;
+  min-width: 200px;
+}
+
+.note-modal textarea {
+  resize: none;
+  height: 120px;
+  /* 높이 약간 더 증가 */
+}
+
 /* 팁 리스트 */
 .tip-list {
   list-style: none;
@@ -157,10 +255,4 @@
   background: #fafafa;
   padding: 10px;
   border-radius: 8px;
-}
-
-@media (max-width: 600px) {
-  .mypage-grid {
-    grid-template-columns: 1fr;
-  }
 }

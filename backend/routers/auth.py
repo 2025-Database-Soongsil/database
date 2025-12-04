@@ -51,6 +51,8 @@ def social_signup(payload: SocialSignup):
         nickname=payload.nickname, 
         gender=payload.gender,
         is_pregnant=payload.is_pregnant,
+        last_period_date=payload.last_period_date,
+        due_date=payload.due_date,
         height=payload.height,
         weight=payload.weight
     )

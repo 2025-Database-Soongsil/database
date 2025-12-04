@@ -16,7 +16,7 @@ const SocialLogin = ({ onSocialLogin }) => (
   </div>
 )
 
-const SignupModal = ({ isOpen, socialInfo, onConfirm, onCancel }) => {
+const SignupModal = ({ isOpen, socialInfo, onConfirm, onCancel, onError }) => {
   const [form, setForm] = useState({
     gender: '',
     nickname: socialInfo?.nickname || '',
@@ -34,17 +34,25 @@ const SignupModal = ({ isOpen, socialInfo, onConfirm, onCancel }) => {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!form.gender) {
-      alert('성별을 선택해주세요.')
+      onError('입력 오류', '성별을 선택해주세요.')
       return
     }
     if (!form.nickname.trim()) {
-      alert('닉네임을 입력해주세요.')
+      onError('입력 오류', '닉네임을 입력해주세요.')
       return
+    }
+    if (form.gender === 'female' && form.is_pregnant) {
+      if (!form.last_period_date || !form.due_date) {
+        onError('입력 오류', '임신 중인 경우 마지막 생리 시작일과 출산 예정일을 모두 입력해주세요.')
+        return
+      }
     }
     onConfirm({
       gender: form.gender,
       nickname: form.nickname,
       is_pregnant: form.gender === 'female' ? (form.is_pregnant || false) : false,
+      last_period_date: form.is_pregnant ? form.last_period_date : null,
+      due_date: form.is_pregnant ? form.due_date : null,
       height: form.height ? Number(form.height) : null,
       weight: form.weight ? Number(form.weight) : null
     })
@@ -109,6 +117,31 @@ const SignupModal = ({ isOpen, socialInfo, onConfirm, onCancel }) => {
             </div>
           )}
 
+          {form.gender === 'female' && form.is_pregnant && (
+            <div className="input-row">
+              <div className="input-group">
+                <label>마지막 생리 시작일</label>
+                <input
+                  type="date"
+                  name="last_period_date"
+                  value={form.last_period_date || ''}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="input-group">
+                <label>출산 예정일</label>
+                <input
+                  type="date"
+                  name="due_date"
+                  value={form.due_date || ''}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+          )}
+
           <div className="input-row">
             <div className="input-group">
               <label>키 (cm)</label>
@@ -137,8 +170,8 @@ const SignupModal = ({ isOpen, socialInfo, onConfirm, onCancel }) => {
             <button type="button" onClick={onCancel} className="action-btn secondary-btn">취소</button>
           </div>
         </form>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }
 
@@ -192,6 +225,7 @@ const AuthScreen = ({ onSocialLogin, registeringUser, onSocialRegister, onCancel
           socialInfo={registeringUser}
           onConfirm={handleRegisterConfirm}
           onCancel={onCancelRegister}
+          onError={openModal}
         />
       )}
 

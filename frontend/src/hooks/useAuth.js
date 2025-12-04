@@ -176,11 +176,18 @@ export function useAuth() {
             gender: data.user?.gender, // Extract gender
             email: data.user?.email ?? '',
             profile: data.user?.profile || {},
+            pregnancyDates: {
+                lastPeriodDate: data.user?.pregnancy_info?.pregnancy_start || '',
+                dueDate: data.user?.pregnancy_info?.due_date || ''
+            }
         }
-        const datesFromUser = data.user?.dates || {}
+        const datesFromUser = {
+            startDate: data.user?.pregnancy_info?.pregnancy_start || '',
+            dueDate: data.user?.pregnancy_info?.due_date || ''
+        }
 
         setUser(userInfo)
-        setDates({ startDate: datesFromUser.startDate || '', dueDate: datesFromUser.dueDate || '' })
+        setDates(datesFromUser)
         setAuthToken(data.token)
         setLoggedIn(true)
 
@@ -194,26 +201,43 @@ export function useAuth() {
         )
     }
 
-    const updatePregnancy = async (isPregnant) => {
+    const updatePregnancy = async (isPregnant, dates = {}) => {
         if (!authToken) return
         try {
+            const payload = {
+                is_pregnant: isPregnant,
+                last_period_date: dates.lastPeriodDate || null,
+                due_date: dates.dueDate || null
+            }
+
             const res = await fetch(`${API_BASE}/users/pregnancy`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${authToken}`
                 },
-                body: JSON.stringify({ is_pregnant: isPregnant })
+                body: JSON.stringify(payload)
             })
             if (!res.ok) throw new Error('Failed to update pregnancy status')
 
-            setUser(prev => ({ ...prev, pregnant: isPregnant }))
+            setUser(prev => ({
+                ...prev,
+                pregnant: isPregnant,
+                pregnancyDates: {
+                    lastPeriodDate: payload.last_period_date,
+                    dueDate: payload.due_date
+                }
+            }))
 
             // Update local storage
             const saved = localStorage.getItem('bp-auth')
             if (saved) {
                 const parsed = JSON.parse(saved)
                 parsed.user.pregnant = isPregnant
+                parsed.user.pregnancyDates = {
+                    lastPeriodDate: payload.last_period_date,
+                    dueDate: payload.due_date
+                }
                 localStorage.setItem('bp-auth', JSON.stringify(parsed))
             }
         } catch (e) {
@@ -313,6 +337,59 @@ export function useAuth() {
         setRegisteringUser(null)
     }
 
+    const fetchDoctorsNotes = async () => {
+        if (!authToken) return []
+        const res = await fetch(`${API_BASE}/users/notes`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        })
+        if (!res.ok) return []
+        return await res.json()
+    }
+
+    const createDoctorsNote = async (content, visitDate) => {
+        if (!authToken) return null
+        const res = await fetch(`${API_BASE}/users/notes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ content, visit_date: visitDate || null })
+        })
+        if (!res.ok) throw new Error('Failed to create note')
+        return await res.json()
+    }
+
+    const deleteDoctorsNote = async (noteId) => {
+        if (!authToken) return false
+        const res = await fetch(`${API_BASE}/users/notes/${noteId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        })
+        return res.ok
+    }
+
+    const [healthTips, setHealthTips] = useState([])
+
+    useEffect(() => {
+        if (authToken) {
+            fetchHealthTips().then(setHealthTips)
+        }
+    }, [authToken])
+
+    const fetchHealthTips = async () => {
+        // Tips endpoint might not need auth, but we can send it if we have it
+        const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+        const res = await fetch(`${API_BASE}/users/tips`, { headers })
+        if (!res.ok) return []
+        return await res.json()
+    }
+
+    const refreshHealthTips = async () => {
+        const tips = await fetchHealthTips()
+        setHealthTips(tips)
+    }
+
     return {
         loggedIn,
         user,
@@ -328,6 +405,12 @@ export function useAuth() {
         updatePregnancy,
         registeringUser,
         socialRegister,
-        cancelRegister
+        cancelRegister,
+
+        fetchDoctorsNotes,
+        createDoctorsNote,
+        deleteDoctorsNote,
+        healthTips,
+        refreshHealthTips
     }
 }

@@ -4,7 +4,7 @@ import './MyPageTab.css' // CSS 파일 임포트
 
 
 
-const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onLocalChange, onSave, gender, isPregnant, onPregnancyChange }) => {
+const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onLocalChange, onSave, gender, isPregnant, onPregnancyChange, lastPeriodDate, dueDate, onDateChange }) => {
   // 값이 입력되지 않았을 경우 0으로 처리하여 계산 오류 방지
   // Local state is used for display, so we keep it as string or number as entered
 
@@ -48,6 +48,29 @@ const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWei
             />
             <span className="check-text">현재 임신 중이에요 🤰</span>
           </label>
+
+          {isPregnant && (
+            <div className="field-row" style={{ marginTop: '12px' }}>
+              <div>
+                <label>마지막 생리 시작일</label>
+                <input
+                  type="date"
+                  className="styled-input"
+                  value={lastPeriodDate || ''}
+                  onChange={(e) => onDateChange('lastPeriod', e.target.value)}
+                />
+              </div>
+              <div>
+                <label>출산 예정일</label>
+                <input
+                  type="date"
+                  className="styled-input"
+                  value={dueDate || ''}
+                  onChange={(e) => onDateChange('dueDate', e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -96,76 +119,231 @@ const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWei
   )
 }
 
-const HealthReport = ({ height, preWeight, currentWeight }) => {
+
+
+const WeightAnalysis = ({ height, preWeight, currentWeight }) => {
   const result = getWeightStatus(height, preWeight, currentWeight)
   const safeHeight = Number(height) || 0;
   const safePreWeight = Number(preWeight) || 0;
   const safeCurrentWeight = Number(currentWeight) || 0;
 
   if (safeHeight <= 0 || safePreWeight <= 0 || safeCurrentWeight <= 0 || !result) {
-    return (
-      <div className="report-column">
-        <section className="tips-card card-box">
-          <h3>💡 닥터스 노트</h3>
-          <ul className="tip-list">
-            <li>🌙 수면 패턴을 규칙적으로 유지하세요.</li>
-            <li>☕ 카페인은 하루 200mg(약 1잔) 이하로!</li>
-            <li>💧 하루 2L 물 마시기, 잊지 마세요.</li>
-          </ul>
-        </section>
-      </div>
-    )
+    return null
   }
 
   return (
-    <div className="report-column">
-      <section className="report-card card-box">
-        <h3>체중 변화 분석 📊</h3>
-        <div className="stat-row">
-          <div className="stat-item">
-            <span className="label">현재 BMI</span>
-            <strong className="value">{result.bmi}</strong>
-          </div>
-          <div className="stat-item">
-            <span className="label">체중 변화</span>
-            <strong className={`value ${result.gained > 0 ? 'plus' : ''}`}>
-              {result.gained > 0 ? '+' : ''}{result.gained}kg
-            </strong>
-          </div>
+    <section className="report-card card-box">
+      <h3>체중 변화 분석 📊</h3>
+      <div className="stat-row">
+        <div className="stat-item">
+          <span className="label">현재 BMI</span>
+          <strong className="value">{result.bmi}</strong>
         </div>
-        <div className="advice-box">
-          <p className="target-range">권장 증가 범위: {result.target}</p>
-          <p className="message">{result.message}</p>
+        <div className="stat-item">
+          <span className="label">체중 변화</span>
+          <strong className={`value ${result.gained > 0 ? 'plus' : ''}`}>
+            {result.gained > 0 ? '+' : ''}{result.gained}kg
+          </strong>
         </div>
-      </section>
+      </div>
+      <div className="advice-box">
+        <p className="target-range">권장 증가 범위: {result.target}</p>
+        <p className="message">{result.message}</p>
+      </div>
+    </section>
+  )
+}
 
-      <section className="tips-card card-box">
-        <h3>💡 닥터스 노트</h3>
-        <ul className="tip-list">
-          <li>🌙 수면 패턴을 규칙적으로 유지하세요.</li>
-          <li>☕ 카페인은 하루 200mg(약 1잔) 이하로!</li>
-          <li>💧 하루 2L 물 마시기, 잊지 마세요.</li>
-        </ul>
-      </section>
+const AddNoteModal = ({ isOpen, onClose, onSave }) => {
+  const [content, setContent] = useState('')
+  const [visitDate, setVisitDate] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      setContent('')
+      setVisitDate(new Date().toISOString().split('T')[0])
+    }
+  }, [isOpen])
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!content.trim()) {
+      alert('내용을 입력해주세요.')
+      return
+    }
+    onSave(content, visitDate)
+    onClose()
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content note-modal">
+        <h3>진료 기록 추가 📝</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label>방문 날짜</label>
+            <input
+              type="date"
+              value={visitDate}
+              onChange={(e) => setVisitDate(e.target.value)}
+              className="styled-input"
+              required
+            />
+          </div>
+          <div className="input-group">
+            <label>진료 내용</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="예: 아기 심장 소리 들음, 초음파 사진 받음"
+              className="styled-input"
+              rows={4}
+              required
+            />
+          </div>
+          <div className="modal-actions">
+            <button type="submit" className="primary-btn">저장</button>
+            <button type="button" onClick={onClose} className="secondary-btn">취소</button>
+          </div>
+        </form>
+      </div>
     </div>
+  )
+}
+
+const DoctorsNoteSection = ({ fetchNotes, createNote, deleteNote }) => {
+  const [notes, setNotes] = useState([])
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [deleteTargetId, setDeleteTargetId] = useState(null)
+
+  useEffect(() => {
+    loadNotes()
+  }, [])
+
+  const loadNotes = async () => {
+    if (fetchNotes) {
+      const data = await fetchNotes()
+      setNotes(data)
+    }
+  }
+
+  const handleAddNote = async (content, visitDate) => {
+    if (createNote) {
+      await createNote(content, visitDate)
+      loadNotes()
+    }
+  }
+
+  const handleDeleteClick = (id) => {
+    setDeleteTargetId(id)
+  }
+
+  const confirmDelete = async () => {
+    if (deleteTargetId && deleteNote) {
+      await deleteNote(deleteTargetId)
+      setDeleteTargetId(null)
+      loadNotes()
+    }
+  }
+
+  return (
+    <section className="doctors-note-card card-box" style={{ marginTop: '20px' }}>
+      <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h3>🩺 닥터스 노트</h3>
+        <button onClick={() => setIsAddModalOpen(true)} className="primary-btn small">
+          + 기록 추가
+        </button>
+      </div>
+
+      <ul className="note-list">
+        {notes.length === 0 && <li className="empty-msg">기록된 진료 노트가 없습니다.</li>}
+        {notes.map((note) => (
+          <li key={note.id} className="note-item">
+            <div className="note-info">
+              <span className="note-date">{note.visit_date || note.created_at.split('T')[0]}</span>
+              <span className="note-content">{note.content}</span>
+            </div>
+            <button onClick={() => handleDeleteClick(note.id)} className="delete-btn minus-btn" title="삭제">
+              -
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <AddNoteModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleAddNote}
+      />
+
+      <Modal
+        isOpen={!!deleteTargetId}
+        title="기록 삭제"
+        message="정말 이 진료 기록을 삭제하시겠습니까?"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+        confirmText="삭제"
+        cancelText="취소"
+      />
+    </section>
+  )
+}
+
+const HealthTips = ({ tips }) => {
+  return (
+    <section className="tips-card card-box" style={{ marginTop: '20px' }}>
+      <h3>💡 건강 팁</h3>
+      <ul className="tip-list">
+        {tips && tips.length > 0 ? (
+          tips.map((tip) => (
+            <li key={tip.id}>{tip.content}</li>
+          ))
+        ) : (
+          <>
+            <li>🌙 수면 패턴을 규칙적으로 유지하세요.</li>
+            <li>☕ 카페인은 하루 200mg(약 1잔) 이하로!</li>
+            <li>💧 하루 2L 물 마시기, 잊지 마세요.</li>
+          </>
+        )}
+      </ul>
+    </section>
   )
 }
 
 import Modal from './Modal'
 
-const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange, onSaveProfile, gender, isPregnant, onPregnancyChange }) => {
+const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange, onSaveProfile, gender, isPregnant, pregnancyDates, onPregnancyChange, fetchDoctorsNotes, createDoctorsNote, deleteDoctorsNote, healthTips, refreshHealthTips }) => {
   // Local state for editing
   const [localHeight, setLocalHeight] = useState(height || '')
   const [localPreWeight, setLocalPreWeight] = useState(preWeight || '')
   const [localCurrentWeight, setLocalCurrentWeight] = useState(currentWeight || '')
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [localLastPeriod, setLocalLastPeriod] = useState(pregnancyDates?.lastPeriodDate || '')
+  const [localDueDate, setLocalDueDate] = useState(pregnancyDates?.dueDate || '')
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    title: '',
+    message: ''
+  })
 
   // Sync local state if props change (e.g. after save or external update)
   useEffect(() => {
     setLocalHeight(height || '')
     setLocalPreWeight(preWeight || '')
     setLocalCurrentWeight(currentWeight || '')
-  }, [height, preWeight, currentWeight])
+    setLocalLastPeriod(pregnancyDates?.lastPeriodDate || '')
+    setLocalDueDate(pregnancyDates?.dueDate || '')
+  }, [height, preWeight, currentWeight, pregnancyDates])
+
+  // Refresh health tips when LEAVING MyPage (to prevent flicker on enter)
+  useEffect(() => {
+    return () => {
+      if (refreshHealthTips) {
+        refreshHealthTips()
+      }
+    }
+  }, []) // Empty dependency array means cleanup runs on unmount
 
   const handleLocalChange = (field, value) => {
     if (field === 'height') setLocalHeight(value)
@@ -173,7 +351,39 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
     if (field === 'current') setLocalCurrentWeight(value)
   }
 
+  const handlePregnancyChange = (checked) => {
+    onPregnancyChange(checked, {
+      lastPeriodDate: localLastPeriod,
+      dueDate: localDueDate
+    })
+  }
+
+  const handleDateChange = (field, value) => {
+    if (field === 'lastPeriod') setLocalLastPeriod(value)
+    if (field === 'dueDate') setLocalDueDate(value)
+
+    // Auto-save dates if pregnant is checked
+    if (isPregnant) {
+      onPregnancyChange(true, {
+        lastPeriodDate: field === 'lastPeriod' ? value : localLastPeriod,
+        dueDate: field === 'dueDate' ? value : localDueDate
+      })
+    }
+  }
+
   const handleSave = async () => {
+    // Validate pregnancy dates if pregnant
+    if (isPregnant) {
+      if (!localLastPeriod || !localDueDate) {
+        setModalState({
+          isOpen: true,
+          title: '입력 오류',
+          message: '임신 중인 경우 마지막 생리 시작일과 출산 예정일을 모두 입력해주세요.'
+        })
+        return
+      }
+    }
+
     // onProfileChange updates local state in App.jsx (optional if we reload from API)
     // But we should call onSaveProfile to persist to DB
     if (onSaveProfile) {
@@ -183,14 +393,22 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
         currentWeight: localCurrentWeight ? Number(localCurrentWeight) : null
       })
       if (success) {
-        setIsModalOpen(true)
+        setModalState({
+          isOpen: true,
+          title: '알림',
+          message: '저장되었습니다.'
+        })
       }
     } else {
       // Fallback for legacy behavior
       onProfileChange('height', localHeight)
       onProfileChange('pre', localPreWeight)
       onProfileChange('current', localCurrentWeight)
-      setIsModalOpen(true)
+      setModalState({
+        isOpen: true,
+        title: '알림',
+        message: '저장되었습니다.'
+      })
     }
   }
 
@@ -201,31 +419,43 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
         <h2>{nickname}님의 마이페이지</h2>
       </header>
 
-      <div className="mypage-grid">
-        <ProfileForm
-          nickname={nickname}
-          onNicknameChange={onNicknameChange}
-          height={localHeight}
-          preWeight={localPreWeight}
-          currentWeight={localCurrentWeight}
-          onLocalChange={handleLocalChange}
-          onSave={handleSave}
-          gender={gender}
-          isPregnant={isPregnant}
-          onPregnancyChange={onPregnancyChange}
-        />
-        <HealthReport
+      <ProfileForm
+        nickname={nickname}
+        onNicknameChange={onNicknameChange}
+        height={localHeight}
+        preWeight={localPreWeight}
+        currentWeight={localCurrentWeight}
+        onLocalChange={handleLocalChange}
+        onSave={handleSave}
+        gender={gender}
+        isPregnant={isPregnant}
+        onPregnancyChange={handlePregnancyChange}
+        lastPeriodDate={localLastPeriod}
+        dueDate={localDueDate}
+        onDateChange={handleDateChange}
+      />
+
+      <div style={{ marginTop: '20px' }}>
+        <WeightAnalysis
           height={localHeight}
           preWeight={localPreWeight}
           currentWeight={localCurrentWeight}
         />
       </div>
 
+      <HealthTips tips={healthTips} />
+
+      <DoctorsNoteSection
+        fetchNotes={fetchDoctorsNotes}
+        createNote={createDoctorsNote}
+        deleteNote={deleteDoctorsNote}
+      />
+
       <Modal
-        isOpen={isModalOpen}
-        title="알림"
-        message="저장되었습니다."
-        onConfirm={() => setIsModalOpen(false)}
+        isOpen={modalState.isOpen}
+        title={modalState.title}
+        message={modalState.message}
+        onConfirm={() => setModalState(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
   )
