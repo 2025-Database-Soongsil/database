@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getWeightStatus } from '../utils/helpers'
+import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import './MyPageTab.css' // CSS 파일 임포트
 
 
@@ -184,35 +185,120 @@ const WeightAnalysis = ({ height, preWeight, currentWeight }) => {
     </section>
   )
 }
-const AnalysisResultModal = ({ isOpen, onClose, result }) => {
+const WeightGraph = ({ preWeight, currentWeight, minGain, maxGain, currentWeek }) => {
+  // Generate data for 0 to 40 weeks
+  const data = []
+  for (let week = 0; week <= 40; week += 4) {
+    // Calculate recommended range (linear interpolation)
+    const minW = preWeight + (minGain * (week / 40))
+    const maxW = preWeight + (maxGain * (week / 40))
+
+    // User data (only up to current week)
+    let myW = null
+    if (week === 0) myW = preWeight
+    else if (week <= currentWeek && week >= currentWeek - 4) myW = currentWeight // Approximate for display
+
+    // Better logic: linear interpolation for user weight
+    // Week 0: preWeight
+    // Current Week: currentWeight
+    // We only have two points, so we can draw a line between them.
+    // But the chart needs data points at intervals.
+
+    if (week <= currentWeek) {
+      const progress = week / currentWeek
+      myW = preWeight + ((currentWeight - preWeight) * progress)
+    }
+
+    data.push({
+      week: `${week}주`,
+      min: Number(minW.toFixed(1)),
+      max: Number(maxW.toFixed(1)),
+      my: myW ? Number(myW.toFixed(1)) : null,
+      range: [Number(minW.toFixed(1)), Number(maxW.toFixed(1))]
+    })
+  }
+
+  return (
+    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+      <ComposedChart width={320} height={250} data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey="week" tick={{ fontSize: 12 }} />
+        <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={{ fontSize: 12 }} />
+        <Tooltip />
+        {/* Recommended Range Area */}
+        <Area
+          type="monotone"
+          dataKey="range"
+          stroke="none"
+          fill="#e3f2fd"
+          name="권장 범위"
+        />
+        {/* User Weight Line */}
+        <Line
+          type="monotone"
+          dataKey="my"
+          stroke="#ff4081"
+          strokeWidth={3}
+          dot={{ r: 4 }}
+          name="나의 체중"
+        />
+      </ComposedChart>
+    </div>
+  )
+}
+
+const AnalysisResultModal = ({ isOpen, onClose, result, preWeight, currentWeight, weeks }) => {
+  const [showGraph, setShowGraph] = useState(false)
+
   if (!isOpen || !result) return null
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="modal-content" style={{ maxWidth: '500px' }}>
         <section className="report-card card-box" style={{ boxShadow: 'none', padding: 0 }}>
           <h3>AI 체중 분석 🤖</h3>
-          <div className="stat-row">
-            <div className="stat-item">
-              <span className="label">현재 BMI</span>
-              <strong className="value">{result.bmi}</strong>
-            </div>
-            <div className="stat-item">
-              <span className="label">체중 변화</span>
-              <strong className={`value ${result.gained > 0 ? 'plus' : ''}`}>
-                {result.gained > 0 ? '+' : ''}{result.gained}kg
-              </strong>
-            </div>
-          </div>
-          <div className="advice-box">
-            <p className="target-range">현재 주수 권장 증가: {result.current_week_gain_range}</p>
-            <p className="target-range">전체 기간 권장 증가: {result.total_gain_range}</p>
-            <hr style={{ margin: '10px 0', border: '0', borderTop: '1px solid #eee' }} />
-            <p className="message">{result.message}</p>
-          </div>
+
+          {!showGraph ? (
+            <>
+              <div className="stat-row">
+                <div className="stat-item">
+                  <span className="label">현재 BMI</span>
+                  <strong className="value">{Number(result.bmi).toFixed(2)}</strong>
+                </div>
+                <div className="stat-item">
+                  <span className="label">체중 변화</span>
+                  <strong className={`value ${result.gained > 0 ? 'plus' : ''}`}>
+                    {result.gained > 0 ? '+' : ''}{result.gained}kg
+                  </strong>
+                </div>
+              </div>
+              <div className="advice-box">
+                <p className="target-range">현재 주수 권장 증가: {result.current_week_gain_range}</p>
+                <p className="target-range">전체 기간 권장 증가: {result.total_gain_range}</p>
+                <hr style={{ margin: '10px 0', border: '0', borderTop: '1px solid #eee' }} />
+                <p className="message">{result.message}</p>
+              </div>
+            </>
+          ) : (
+            <WeightGraph
+              preWeight={preWeight}
+              currentWeight={currentWeight}
+              minGain={result.min_recommended_gain || 11.5}
+              maxGain={result.max_recommended_gain || 16.0}
+              currentWeek={weeks}
+            />
+          )}
+
         </section>
-        <div className="modal-actions">
-          <button onClick={onClose} className="primary-btn" style={{ width: '100%', marginTop: '16px' }}>
+        <div className="modal-actions" style={{ flexDirection: 'column', gap: '8px' }}>
+          <button
+            onClick={() => setShowGraph(!showGraph)}
+            className="secondary-btn"
+            style={{ width: '100%' }}
+          >
+            {showGraph ? '분석 결과 보기' : '그래프로 보기 📈'}
+          </button>
+          <button onClick={onClose} className="primary-btn" style={{ width: '100%' }}>
             닫기
           </button>
         </div>
@@ -480,11 +566,11 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
 
   const canAnalyze = gender === 'female' &&
     isPregnant &&
-    pregnancyDates?.lastPeriodDate &&
-    pregnancyDates?.dueDate &&
-    height &&
-    preWeight &&
-    currentWeight
+    localLastPeriod &&
+    localDueDate &&
+    localHeight &&
+    localPreWeight &&
+    localCurrentWeight
 
   const [showAnalysisModal, setShowAnalysisModal] = useState(false)
   const [analysisResult, setAnalysisResult] = useState(null)
@@ -497,7 +583,7 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
     try {
       // Calculate weeks
       const today = new Date()
-      const start = new Date(pregnancyDates.lastPeriodDate)
+      const start = new Date(localLastPeriod)
       const diffTime = Math.abs(today - start)
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       const weeks = Math.floor(diffDays / 7)
@@ -510,9 +596,9 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
           'Authorization': `Bearer ${JSON.parse(localStorage.getItem('bp-auth')).token}`
         },
         body: JSON.stringify({
-          height: Number(height),
-          preWeight: Number(preWeight),
-          currentWeight: Number(currentWeight),
+          height: Number(localHeight),
+          preWeight: Number(localPreWeight),
+          currentWeight: Number(localCurrentWeight),
           weeks: weeks
         })
       })
@@ -560,6 +646,16 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
         isOpen={showAnalysisModal}
         onClose={() => setShowAnalysisModal(false)}
         result={analysisResult}
+        preWeight={Number(localPreWeight)}
+        currentWeight={Number(localCurrentWeight)}
+        weeks={(() => {
+          if (!pregnancyDates?.lastPeriodDate) return 0
+          const today = new Date()
+          const start = new Date(pregnancyDates.lastPeriodDate)
+          const diffTime = Math.abs(today - start)
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          return Math.floor(diffDays / 7)
+        })()}
       />
 
       <HealthTips tips={healthTips} />
