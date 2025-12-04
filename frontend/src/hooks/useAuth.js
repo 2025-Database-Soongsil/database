@@ -172,7 +172,8 @@ export function useAuth() {
         const userInfo = {
             id: data.user?.id, // Store user ID
             nickname,
-            pregnant: Boolean(data.user?.pregnant),
+            pregnant: Boolean(data.user?.is_pregnant ?? data.user?.pregnant), // Handle DB column name
+            gender: data.user?.gender, // Extract gender
             email: data.user?.email ?? '',
             profile: data.user?.profile || {},
         }
@@ -191,6 +192,34 @@ export function useAuth() {
                 dates: datesFromUser,
             })
         )
+    }
+
+    const updatePregnancy = async (isPregnant) => {
+        if (!authToken) return
+        try {
+            const res = await fetch(`${API_BASE}/users/pregnancy`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ is_pregnant: isPregnant })
+            })
+            if (!res.ok) throw new Error('Failed to update pregnancy status')
+
+            setUser(prev => ({ ...prev, pregnant: isPregnant }))
+
+            // Update local storage
+            const saved = localStorage.getItem('bp-auth')
+            if (saved) {
+                const parsed = JSON.parse(saved)
+                parsed.user.pregnant = isPregnant
+                localStorage.setItem('bp-auth', JSON.stringify(parsed))
+            }
+        } catch (e) {
+            console.error(e)
+            throw e
+        }
     }
 
     const logout = () => {
@@ -296,6 +325,7 @@ export function useAuth() {
         deleteAccount,
         socialLogin,
         updateNickname,
+        updatePregnancy,
         registeringUser,
         socialRegister,
         cancelRegister

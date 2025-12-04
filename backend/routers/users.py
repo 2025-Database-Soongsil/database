@@ -1,6 +1,6 @@
 from __future__ import annotations
 from fastapi import APIRouter, Header, HTTPException
-from models import ProfilePayload
+from models import ProfilePayload, PregnancyPayload
 from utils import weight_status
 import db
 
@@ -73,6 +73,19 @@ def update_profile(payload: ProfilePayload, authorization: str = Header(None)):
         mapped_profile.get("currentWeight"),
     )
     return {"profile": mapped_profile, "weightStatus": status}
+
+
+@router.patch("/pregnancy")
+def update_pregnancy(payload: PregnancyPayload, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+    
+    success = db.update_user_pregnancy(user["id"], payload.is_pregnant)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update pregnancy status")
+        
+    return {"ok": True, "is_pregnant": payload.is_pregnant}
 
 
 @router.put("/notifications")

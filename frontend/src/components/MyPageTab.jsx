@@ -4,7 +4,7 @@ import './MyPageTab.css' // CSS 파일 임포트
 
 
 
-const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onLocalChange, onSave }) => {
+const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onLocalChange, onSave, gender, isPregnant, onPregnancyChange }) => {
   // 값이 입력되지 않았을 경우 0으로 처리하여 계산 오류 방지
   // Local state is used for display, so we keep it as string or number as entered
 
@@ -37,6 +37,19 @@ const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWei
           className="styled-input disabled"
         />
       </div>
+
+      {gender === 'female' && (
+        <div className="field-group">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={isPregnant}
+              onChange={(e) => onPregnancyChange(e.target.checked)}
+            />
+            <span className="check-text">현재 임신 중이에요 🤰</span>
+          </label>
+        </div>
+      )}
 
       <div className="field-group">
         <div className="field-row">
@@ -140,7 +153,7 @@ const HealthReport = ({ height, preWeight, currentWeight }) => {
 
 import Modal from './Modal'
 
-const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange, onSaveProfile }) => {
+const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange, onSaveProfile, gender, isPregnant, onPregnancyChange }) => {
   // Local state for editing
   const [localHeight, setLocalHeight] = useState(height || '')
   const [localPreWeight, setLocalPreWeight] = useState(preWeight || '')
@@ -197,6 +210,9 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
           currentWeight={localCurrentWeight}
           onLocalChange={handleLocalChange}
           onSave={handleSave}
+          gender={gender}
+          isPregnant={isPregnant}
+          onPregnancyChange={onPregnancyChange}
         />
         <HealthReport
           height={localHeight}

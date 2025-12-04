@@ -106,6 +106,7 @@ def create_social_user_with_profile(
     email: str, 
     nickname: str, 
     gender: str,
+    is_pregnant: bool = False,
     height: int = None,
     weight: float = None
 ) -> dict:
@@ -117,7 +118,7 @@ def create_social_user_with_profile(
         cur.execute(
             'insert into "User" (id, email, provider, social_id, nickname, is_pregnant, gender, created_at, updated_at) '
             'values (%s, %s, %s, %s, %s, %s, %s, now(), now()) returning *',
-            (user_id, email, provider, social_id, nickname, False, gender),
+            (user_id, email, provider, social_id, nickname, is_pregnant, gender),
         )
         user = cur.fetchone()
         
@@ -238,6 +239,16 @@ def update_user_nickname(user_id: int, nickname: str) -> bool:
         cur.execute(
             'UPDATE "User" SET nickname = %s, updated_at = NOW() WHERE id = %s',
             (nickname, user_id)
+        )
+        return cur.rowcount > 0
+
+
+def update_user_pregnancy(user_id: int, is_pregnant: bool) -> bool:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            'UPDATE "User" SET is_pregnant = %s, updated_at = NOW() WHERE id = %s',
+            (is_pregnant, user_id)
         )
         return cur.rowcount > 0
 

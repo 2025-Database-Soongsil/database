@@ -44,16 +44,17 @@ def social_signup(payload: SocialSignup):
     if db.fetch_user_by_social(payload.provider, payload.social_id):
         raise HTTPException(status_code=400, detail="이미 가입된 계정입니다.")
         
-    user = db.create_social_user_with_profile(
-        payload.provider, 
-        payload.social_id, 
-        payload.email, 
-        payload.nickname, 
-        payload.gender,
-        payload.height,
-        payload.weight
+    new_user = db.create_social_user_with_profile(
+        provider=payload.provider, 
+        social_id=payload.social_id, 
+        email=payload.email, 
+        nickname=payload.nickname, 
+        gender=payload.gender,
+        is_pregnant=payload.is_pregnant,
+        height=payload.height,
+        weight=payload.weight
     )
-    return {"token": auth_service.build_token(str(user["id"])), "user": user}
+    return {"token": auth_service.build_token(str(new_user["id"])), "user": new_user}
 
 
 @router.post("/google")

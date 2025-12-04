@@ -38,7 +38,8 @@ class SocialSignup(BaseModel):
     social_id: str
     email: str
     nickname: str
-    gender: str # 'male' or 'female'
+    gender: str # 'male' or 'female' (required)
+    is_pregnant: Optional[bool] = False
     height: Optional[int] = None
     weight: Optional[float] = None # current_weight
 
@@ -110,6 +111,10 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     matched: Optional[str] = None
+
+
+class PregnancyPayload(BaseModel):
+    is_pregnant: bool
 
 
 class SupplementInfo(BaseModel):

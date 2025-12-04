@@ -44,6 +44,7 @@ const SignupModal = ({ isOpen, socialInfo, onConfirm, onCancel }) => {
     onConfirm({
       gender: form.gender,
       nickname: form.nickname,
+      is_pregnant: form.gender === 'female' ? (form.is_pregnant || false) : false,
       height: form.height ? Number(form.height) : null,
       weight: form.weight ? Number(form.weight) : null
     })
@@ -92,6 +93,21 @@ const SignupModal = ({ isOpen, socialInfo, onConfirm, onCancel }) => {
               required
             />
           </div>
+
+          {form.gender === 'female' && (
+            <div className="input-group">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  name="is_pregnant"
+                  checked={form.is_pregnant || false}
+                  onChange={(e) => setForm(prev => ({ ...prev, is_pregnant: e.target.checked }))}
+                  style={{ width: 'auto', margin: 0 }}
+                />
+                <span style={{ fontSize: '14px', color: '#555' }}>현재 임신 중이에요 🤰</span>
+              </label>
+            </div>
+          )}
 
           <div className="input-row">
             <div className="input-group">

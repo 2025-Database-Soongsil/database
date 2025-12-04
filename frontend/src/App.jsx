@@ -24,7 +24,7 @@ function App() {
     loggedIn,
     socialLogin, logout, deleteAccount,
     registeringUser, socialRegister, cancelRegister,
-    dates, updateNickname
+    dates, updateNickname, updatePregnancy
   } = useAuth()
 
   const [activeTab, setActiveTab] = useState('calendar')
@@ -152,6 +152,9 @@ function App() {
                 if (field === 'current') setCurrentWeight(value)
               }}
               onSaveProfile={saveProfile}
+              gender={user.gender}
+              isPregnant={user.pregnant}
+              onPregnancyChange={updatePregnancy}
             />
           )}
 
