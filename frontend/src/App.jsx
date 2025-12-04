@@ -23,6 +23,7 @@ function App() {
     authToken,
     loggedIn,
     socialLogin, logout, deleteAccount,
+    registeringUser, socialRegister, cancelRegister,
     dates, updateNickname
   } = useAuth()
 
@@ -79,6 +80,9 @@ function App() {
     return (
       <AuthScreen
         onSocialLogin={socialLogin}
+        registeringUser={registeringUser}
+        onSocialRegister={socialRegister}
+        onCancelRegister={cancelRegister}
       />
     )
   }

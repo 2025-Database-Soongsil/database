@@ -63,6 +63,73 @@ export function useAuth() {
         return () => window.removeEventListener('focus', onFocus)
     }, [])
 
+    const [registeringUser, setRegisteringUser] = useState(null) // { provider, social_id, email, nickname }
+
+    const socialLogin = async (provider) => {
+        if (provider === 'Google') {
+            if (googleBusy.current) {
+                alert('구글 로그인 진행 중입니다. 잠시만 기다려주세요.')
+                return
+            }
+            try {
+                const clientId = requireEnv(GOOGLE_CLIENT_ID, 'VITE_GOOGLE_CLIENT_ID')
+                await loadGoogleScript()
+                if (!googleCodeClient.current) {
+                    googleCodeClient.current = window.google.accounts.oauth2.initCodeClient({
+                        client_id: clientId,
+                        scope: 'email profile',
+                        ux_mode: 'popup',
+                        callback: async (response) => {
+                            if (!response.code) {
+                                alert('Google 로그인 코드 발급에 실패했습니다.')
+                                googleBusy.current = false
+                                googleLoginPending.current = false
+                                return
+                            }
+                            try {
+                                const res = await fetch(`${API_BASE}/auth/google`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ credential: response.code, is_code: true }),
+                                })
+                                const data = await res.json()
+
+                                if (data.status === 'register_required') {
+                                    setRegisteringUser(data.social_info)
+                                    return
+                                }
+
+                                if (!res.ok) {
+                                    throw new Error(data.detail || 'Google 로그인 실패')
+                                }
+                                handleAuthSuccess(data)
+                            } catch (err) {
+                                alert(err.message)
+                            } finally {
+                                googleBusy.current = false
+                                googleLoginPending.current = false
+                            }
+                        },
+                    })
+                }
+                googleBusy.current = true
+                googleLoginPending.current = true
+                googleCodeClient.current.requestCode()
+            } catch (err) {
+                alert(err.message)
+                googleBusy.current = false
+                googleLoginPending.current = false
+            }
+        } else if (provider === 'Kakao') {
+            const clientId = requireEnv(KAKAO_CLIENT_ID, 'VITE_KAKAO_CLIENT_ID')
+            const redirectUri = requireEnv(KAKAO_REDIRECT_URI, 'VITE_KAKAO_REDIRECT_URI')
+            const authorizeUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+                redirectUri,
+            )}&response_type=code&prompt=login`
+            window.location.href = authorizeUrl
+        }
+    }
+
     // Handle Kakao Callback
     useEffect(() => {
         const url = new URL(window.location.href)
@@ -78,11 +145,18 @@ export function useAuth() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code }),
                 })
-                if (!res.ok) {
-                    const txt = await res.text()
-                    throw new Error(txt || 'Kakao 로그인 실패')
-                }
                 const data = await res.json()
+
+                if (data.status === 'register_required') {
+                    setRegisteringUser(data.social_info)
+                    // Clean URL
+                    window.history.replaceState({}, document.title, '/')
+                    return
+                }
+
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Kakao 로그인 실패')
+                }
                 handleAuthSuccess(data)
             } catch (err) {
                 alert(err.message)
@@ -117,48 +191,6 @@ export function useAuth() {
                 dates: datesFromUser,
             })
         )
-    }
-
-    const login = async (form) => {
-        try {
-            const res = await fetch(`${API_BASE}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: form.email, password: form.password }),
-            })
-            if (!res.ok) {
-                const txt = await res.text()
-                throw new Error(txt || '로그인 실패')
-            }
-            const data = await res.json()
-            handleAuthSuccess(data)
-        } catch (err) {
-            alert(err.message)
-        }
-    }
-
-    const signup = async (form) => {
-        try {
-            const res = await fetch(`${API_BASE}/auth/signup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: form.email,
-                    password: form.password,
-                    nickname: form.nickname,
-                    pregnant: form.pregnant,
-                    due_date: form.dueDate || null,
-                }),
-            })
-            if (!res.ok) {
-                const txt = await res.text()
-                throw new Error(txt || '회원가입 실패')
-            }
-            const data = await res.json()
-            handleAuthSuccess(data)
-        } catch (err) {
-            alert(err.message)
-        }
     }
 
     const logout = () => {
@@ -223,80 +255,33 @@ export function useAuth() {
         }
     }
 
-    const loadGoogleScript = () =>
-        new Promise((resolve, reject) => {
-            if (googleReady.current) return resolve()
-            if (googleScriptLoading.current) return reject(new Error('Google 스크립트 로딩 중입니다.'))
-            googleScriptLoading.current = true
-            const script = document.createElement('script')
-            script.src = 'https://accounts.google.com/gsi/client'
-            script.async = true
-            script.onload = () => {
-                googleReady.current = true
-                resolve()
+    const socialRegister = async (formData) => {
+        if (!registeringUser) return
+        try {
+            const payload = {
+                ...registeringUser,
+                ...formData
             }
-            script.onerror = () => reject(new Error('Google 스크립트 로드 실패'))
-            document.head.appendChild(script)
-        })
-
-    const socialLogin = async (provider) => {
-        if (provider === 'Google') {
-            if (googleBusy.current) {
-                alert('구글 로그인 진행 중입니다. 잠시만 기다려주세요.')
-                return
+            const res = await fetch(`${API_BASE}/auth/signup/social`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            if (!res.ok) {
+                const txt = await res.text()
+                throw new Error(txt || '회원가입 실패')
             }
-            try {
-                const clientId = requireEnv(GOOGLE_CLIENT_ID, 'VITE_GOOGLE_CLIENT_ID')
-                await loadGoogleScript()
-                if (!googleCodeClient.current) {
-                    googleCodeClient.current = window.google.accounts.oauth2.initCodeClient({
-                        client_id: clientId,
-                        scope: 'email profile',
-                        ux_mode: 'popup',
-                        callback: async (response) => {
-                            if (!response.code) {
-                                alert('Google 로그인 코드 발급에 실패했습니다.')
-                                googleBusy.current = false
-                                googleLoginPending.current = false
-                                return
-                            }
-                            try {
-                                const res = await fetch(`${API_BASE}/auth/google`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ credential: response.code, is_code: true }),
-                                })
-                                if (!res.ok) {
-                                    const txt = await res.text()
-                                    throw new Error(txt || 'Google 로그인 실패')
-                                }
-                                const data = await res.json()
-                                handleAuthSuccess(data)
-                            } catch (err) {
-                                alert(err.message)
-                            } finally {
-                                googleBusy.current = false
-                                googleLoginPending.current = false
-                            }
-                        },
-                    })
-                }
-                googleBusy.current = true
-                googleLoginPending.current = true
-                googleCodeClient.current.requestCode()
-            } catch (err) {
-                alert(err.message)
-                googleBusy.current = false
-                googleLoginPending.current = false
-            }
-        } else if (provider === 'Kakao') {
-            const clientId = requireEnv(KAKAO_CLIENT_ID, 'VITE_KAKAO_CLIENT_ID')
-            const redirectUri = requireEnv(KAKAO_REDIRECT_URI, 'VITE_KAKAO_REDIRECT_URI')
-            const authorizeUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
-                redirectUri,
-            )}&response_type=code`
-            window.location.href = authorizeUrl
+            const data = await res.json()
+            handleAuthSuccess(data)
+            setRegisteringUser(null)
+        } catch (err) {
+            console.error(err)
+            throw err
         }
+    }
+
+    const cancelRegister = () => {
+        setRegisteringUser(null)
     }
 
     return {
@@ -306,11 +291,13 @@ export function useAuth() {
         authToken,
         dates,
         setDates,
-        login,
-        signup,
+
         logout,
         deleteAccount,
         socialLogin,
-        updateNickname
+        updateNickname,
+        registeringUser,
+        socialRegister,
+        cancelRegister
     }
 }

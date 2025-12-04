@@ -33,6 +33,17 @@ class KakaoLogin(BaseModel):
     code: str
 
 
+class SocialSignup(BaseModel):
+    provider: str
+    social_id: str
+    email: str
+    nickname: str
+    gender: str # 'male' or 'female'
+    height: Optional[int] = None
+    weight: Optional[float] = None # current_weight
+
+
+
 class Todo(BaseModel):
     id: str
     text: str

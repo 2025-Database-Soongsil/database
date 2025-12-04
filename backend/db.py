@@ -100,6 +100,37 @@ def upsert_social_user(provider: str, social_id: str, email: str, nickname: str)
         return cur.fetchone()
 
 
+def create_social_user_with_profile(
+    provider: str, 
+    social_id: str, 
+    email: str, 
+    nickname: str, 
+    gender: str,
+    height: int = None,
+    weight: float = None
+) -> dict:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        user_id = _generate_id()
+        
+        # Insert User
+        cur.execute(
+            'insert into "User" (id, email, provider, social_id, nickname, is_pregnant, gender, created_at, updated_at) '
+            'values (%s, %s, %s, %s, %s, %s, %s, now(), now()) returning *',
+            (user_id, email, provider, social_id, nickname, False, gender),
+        )
+        user = cur.fetchone()
+        
+        # Insert UserProfile if height or weight provided
+        if height is not None or weight is not None:
+            cur.execute(
+                'INSERT INTO "UserProfile" (user_id, height, current_weight, updated_at) VALUES (%s, %s, %s, NOW())',
+                (user_id, height, weight)
+            )
+            
+        return user
+
+
 def fetch_user_by_id(user_id: str | int) -> Optional[dict]:
     with get_conn() as conn:
         cur = conn.cursor()

@@ -68,3 +68,146 @@
   color: #3C1E1E;
   border: none;
 }
+
+/* Signup Modal Styles */
+.signup-modal {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.signup-modal h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--bp-text);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.modal-desc {
+  color: #888;
+  font-size: 14px;
+  margin-bottom: 32px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.gender-options {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.gender-btn {
+  flex: 1;
+  padding: 16px;
+  border: 2px solid var(--bp-gray);
+  border-radius: 16px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: #888;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: white;
+}
+
+.gender-btn:hover {
+  border-color: var(--bp-primary);
+  background: #fff5f5;
+  color: var(--bp-primary);
+}
+
+.gender-btn.selected {
+  background: var(--bp-primary);
+  color: white;
+  border-color: var(--bp-primary);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.gender-btn input {
+  display: none;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bp-text);
+  margin-bottom: 8px;
+  margin-left: 4px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--bp-gray);
+  border-radius: 14px;
+  font-size: 16px;
+  transition: all 0.2s;
+  background: #f8f9fa;
+}
+
+.input-group input:focus {
+  border-color: var(--bp-primary);
+  background: white;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.1);
+}
+
+.input-row {
+  display: flex;
+  gap: 16px;
+}
+
+.input-row .input-group {
+  flex: 1;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 16px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.primary-btn {
+  background: var(--bp-primary);
+  color: white;
+  border: none;
+}
+
+.primary-btn:hover {
+  background: var(--bp-accent);
+  transform: translateY(-1px);
+}
+
+.secondary-btn {
+  background: #f1f3f4;
+  color: #555;
+  border: none;
+}
+
+.secondary-btn:hover {
+  background: #e8eaed;
+}

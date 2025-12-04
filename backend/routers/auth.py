@@ -1,6 +1,6 @@
 from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Header
-from models import AuthSignup, AuthLogin, SocialLogin, GoogleLogin, KakaoLogin
+from models import AuthSignup, AuthLogin, SocialLogin, GoogleLogin, KakaoLogin, SocialSignup
 import db
 from services import auth_service
 
@@ -38,6 +38,24 @@ def social(payload: SocialLogin):
         user = db.create_user_email(email, payload.token, f"{payload.provider} 사용자", False)
     return {"token": auth_service.build_token(user["id"]), "user": user}
 
+@router.post("/signup/social")
+def social_signup(payload: SocialSignup):
+    # Check if already exists
+    if db.fetch_user_by_social(payload.provider, payload.social_id):
+        raise HTTPException(status_code=400, detail="이미 가입된 계정입니다.")
+        
+    user = db.create_social_user_with_profile(
+        payload.provider, 
+        payload.social_id, 
+        payload.email, 
+        payload.nickname, 
+        payload.gender,
+        payload.height,
+        payload.weight
+    )
+    return {"token": auth_service.build_token(str(user["id"])), "user": user}
+
+
 @router.post("/google")
 def google_login(payload: GoogleLogin):
     idinfo = auth_service.verify_google_token(payload.credential, payload.is_code)
@@ -47,10 +65,36 @@ def google_login(payload: GoogleLogin):
     if not email or not social_id:
         raise HTTPException(status_code=400, detail="구글 프로필에서 이메일을 가져올 수 없습니다.")
 
-    nickname = idinfo.get("name") or email.split("@")[0]
-    user_record = auth_service.handle_social_login("google", social_id, email, nickname)
-    # storage.ensure_user_cache removed
-    return {"token": auth_service.build_token(str(user_record["id"])), "user": user_record}
+    # Check if user exists
+    existing_user = db.fetch_user_by_social("google", social_id)
+    if not existing_user:
+        # Check by email to link accounts? 
+        # For now, if not found by social_id, require registration
+        # But if email exists, we might want to auto-link?
+        # The prompt implies strict separation or at least "if not in DB -> popup".
+        # Let's check email just in case to avoid duplicates, but if email found, maybe we just link it?
+        # User said: "If DB User table has no info -> popup".
+        # So if email exists, we should probably just return the user (auto-link).
+        user_by_email = db.fetch_user_by_email(email)
+        if user_by_email:
+             # Auto-link logic
+             user_record = auth_service.handle_social_login("google", social_id, email, user_by_email["nickname"])
+             return {"token": auth_service.build_token(str(user_record["id"])), "user": user_record}
+        
+        # New user -> Return info for signup form
+        return {
+            "status": "register_required",
+            "social_info": {
+                "provider": "google",
+                "social_id": social_id,
+                "email": email,
+                "nickname": idinfo.get("name") or email.split("@")[0]
+            }
+        }
+
+    # User exists
+    return {"token": auth_service.build_token(str(existing_user["id"])), "user": existing_user}
+
 
 @router.post("/kakao")
 def kakao_login(payload: KakaoLogin):
@@ -63,9 +107,28 @@ def kakao_login(payload: KakaoLogin):
     nickname = profile_obj.get("nickname") or "카카오 사용자"
     email = email or f"{social_id}@kakao.connected"
 
-    user_record = auth_service.handle_social_login("kakao", social_id, email, nickname)
-    # storage.ensure_user_cache removed
-    return {"token": auth_service.build_token(str(user_record["id"])), "user": user_record}
+    # Check if user exists
+    existing_user = db.fetch_user_by_social("kakao", social_id)
+    if not existing_user:
+        user_by_email = db.fetch_user_by_email(email)
+        if user_by_email:
+             # Auto-link logic
+             user_record = auth_service.handle_social_login("kakao", social_id, email, user_by_email["nickname"])
+             return {"token": auth_service.build_token(str(user_record["id"])), "user": user_record}
+        
+        # New user -> Return info for signup form
+        return {
+            "status": "register_required",
+            "social_info": {
+                "provider": "kakao",
+                "social_id": social_id,
+                "email": email,
+                "nickname": nickname
+            }
+        }
+
+    # User exists
+    return {"token": auth_service.build_token(str(existing_user["id"])), "user": existing_user}
 
 @router.delete("/me")
 def delete_me(authorization: str = Header(None)):
