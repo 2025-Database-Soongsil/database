@@ -25,16 +25,22 @@ def me(authorization: str = Header(None)):
     
     # Fetch profile separately as it's not in User table anymore
     profile_data = db.fetch_user_profile(user["id"]) or {}
-    # Merge profile into user object for frontend compatibility if needed, 
-    # or just return as is. The frontend expects "user" object to have "profile" field?
-    # Let's check frontend code.
-    # useProfile.js: const { user } = res.data; setHeight(user.profile?.height);
-    # So yes, user object should have profile field.
+    
+    # Map DB columns to frontend keys
+    mapped_profile = {
+        "height": profile_data.get("height"),
+        "preWeight": profile_data.get("initial_weight"),
+        "currentWeight": profile_data.get("current_weight"),
+    }
     
     user_with_profile = dict(user)
-    user_with_profile["profile"] = profile_data
+    user_with_profile["profile"] = mapped_profile
     
-    status = weight_status(profile_data.get("height"), profile_data.get("preWeight"), profile_data.get("currentWeight"))
+    status = weight_status(
+        mapped_profile.get("height"), 
+        mapped_profile.get("preWeight"), 
+        mapped_profile.get("currentWeight")
+    )
     return {"user": user_with_profile, "weightStatus": status}
 
 
@@ -47,34 +53,26 @@ def update_profile(payload: ProfilePayload, authorization: str = Header(None)):
     db.upsert_user_profile(
         user_id=user["id"],
         height=payload.height,
-        weight=payload.currentWeight # payload has currentWeight, db expects weight?
-        # db.upsert_user_profile(user_id, height, weight)
-        # UserProfile table has 'weight'.
-        # Frontend sends 'currentWeight'.
-        # Let's check db.upsert_user_profile signature.
-        # def upsert_user_profile(user_id: int, height: int = None, weight: float = None)
+        initial_weight=payload.preWeight,
+        current_weight=payload.currentWeight
     )
-    # Also update preWeight?
-    # UserProfile table has height, weight. No preWeight?
-    # Schema: height, weight.
-    # Frontend sends preWeight too.
-    # If DB doesn't support preWeight, we lose it.
-    # I should add preWeight to UserProfile table?
-    # Or just ignore it?
-    # The user said "Connect Notification Settings to DB".
-    # Maybe Profile DB connection was already done or assumed?
-    # Schema has UserProfile with height, weight.
-    # I'll stick to what DB supports.
     
     # Fetch updated profile
     profile_data = db.fetch_user_profile(user["id"]) or {}
     
+    # Map DB columns to frontend keys
+    mapped_profile = {
+        "height": profile_data.get("height"),
+        "preWeight": profile_data.get("initial_weight"),
+        "currentWeight": profile_data.get("current_weight"),
+    }
+    
     status = weight_status(
-        profile_data.get("height"),
-        payload.preWeight, # We don't store preWeight in DB yet, so use payload?
-        profile_data.get("weight"),
+        mapped_profile.get("height"),
+        mapped_profile.get("preWeight"),
+        mapped_profile.get("currentWeight"),
     )
-    return {"profile": profile_data, "weightStatus": status}
+    return {"profile": mapped_profile, "weightStatus": status}
 
 
 @router.put("/notifications")

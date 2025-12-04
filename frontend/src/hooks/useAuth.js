@@ -100,6 +100,7 @@ export function useAuth() {
             nickname,
             pregnant: Boolean(data.user?.pregnant),
             email: data.user?.email ?? '',
+            profile: data.user?.profile || {},
         }
         const datesFromUser = data.user?.dates || {}
 

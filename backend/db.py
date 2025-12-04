@@ -183,19 +183,19 @@ def upsert_period_info(user_id: int, last_period: date = None, period_start: dat
             )
 
 
-def upsert_user_profile(user_id: int, height: int = None, weight: float = None) -> None:
+def upsert_user_profile(user_id: int, height: int = None, initial_weight: float = None, current_weight: float = None) -> None:
     with get_conn() as conn:
         cur = conn.cursor()
         cur.execute('SELECT user_id FROM "UserProfile" WHERE user_id = %s', (user_id,))
         if cur.fetchone():
             cur.execute(
-                'UPDATE "UserProfile" SET height = COALESCE(%s, height), weight = COALESCE(%s, weight), updated_at = NOW() WHERE user_id = %s',
-                (height, weight, user_id)
+                'UPDATE "UserProfile" SET height = %s, initial_weight = %s, current_weight = %s, updated_at = NOW() WHERE user_id = %s',
+                (height, initial_weight, current_weight, user_id)
             )
         else:
             cur.execute(
-                'INSERT INTO "UserProfile" (user_id, height, weight, updated_at) VALUES (%s, %s, %s, NOW())',
-                (user_id, height, weight)
+                'INSERT INTO "UserProfile" (user_id, height, initial_weight, current_weight, updated_at) VALUES (%s, %s, %s, %s, NOW())',
+                (user_id, height, initial_weight, current_weight)
             )
 
 
@@ -517,3 +517,17 @@ def add_user_supplement(user_id: int, supplement_id: int) -> dict:
             (_generate_id(), user_id, supplement_id)
         )
         return cur.fetchone()
+
+
+def fetch_user_profile(user_id: int) -> dict:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT * FROM "UserProfile" WHERE user_id = %s', (user_id,))
+        return cur.fetchone()
+
+
+def fetch_custom_supplements(user_id: int) -> list:
+    with get_conn() as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT * FROM "CustomSupplement" WHERE user_id = %s', (user_id,))
+        return cur.fetchall()

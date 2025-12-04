@@ -52,8 +52,8 @@ function App() {
     height, setHeight,
     preWeight, setPreWeight,
     currentWeight, setCurrentWeight,
-    resetProfile
-  } = useProfile()
+    resetProfile, saveProfile
+  } = useProfile(authToken, user)
 
   const { chatMessages, sendMessage, resetChat, isLoading, markAsRead } = useChatbot(authToken)
 
@@ -154,6 +154,7 @@ function App() {
                 if (field === 'pre') setPreWeight(value)
                 if (field === 'current') setCurrentWeight(value)
               }}
+              onSaveProfile={saveProfile}
             />
           )}
 

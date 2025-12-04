@@ -138,17 +138,20 @@ const HealthReport = ({ height, preWeight, currentWeight }) => {
   )
 }
 
-const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange }) => {
+import Modal from './Modal'
+
+const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onProfileChange, onSaveProfile }) => {
   // Local state for editing
-  const [localHeight, setLocalHeight] = useState(height)
-  const [localPreWeight, setLocalPreWeight] = useState(preWeight)
-  const [localCurrentWeight, setLocalCurrentWeight] = useState(currentWeight)
+  const [localHeight, setLocalHeight] = useState(height || '')
+  const [localPreWeight, setLocalPreWeight] = useState(preWeight || '')
+  const [localCurrentWeight, setLocalCurrentWeight] = useState(currentWeight || '')
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Sync local state if props change (e.g. after save or external update)
   useEffect(() => {
-    setLocalHeight(height)
-    setLocalPreWeight(preWeight)
-    setLocalCurrentWeight(currentWeight)
+    setLocalHeight(height || '')
+    setLocalPreWeight(preWeight || '')
+    setLocalCurrentWeight(currentWeight || '')
   }, [height, preWeight, currentWeight])
 
   const handleLocalChange = (field, value) => {
@@ -157,11 +160,25 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
     if (field === 'current') setLocalCurrentWeight(value)
   }
 
-  const handleSave = () => {
-    onProfileChange('height', localHeight)
-    onProfileChange('pre', localPreWeight)
-    onProfileChange('current', localCurrentWeight)
-    alert('저장되었습니다.') // Simple feedback, or use Modal if available
+  const handleSave = async () => {
+    // onProfileChange updates local state in App.jsx (optional if we reload from API)
+    // But we should call onSaveProfile to persist to DB
+    if (onSaveProfile) {
+      const success = await onSaveProfile({
+        height: localHeight ? Number(localHeight) : null,
+        preWeight: localPreWeight ? Number(localPreWeight) : null,
+        currentWeight: localCurrentWeight ? Number(localCurrentWeight) : null
+      })
+      if (success) {
+        setIsModalOpen(true)
+      }
+    } else {
+      // Fallback for legacy behavior
+      onProfileChange('height', localHeight)
+      onProfileChange('pre', localPreWeight)
+      onProfileChange('current', localCurrentWeight)
+      setIsModalOpen(true)
+    }
   }
 
   return (
@@ -187,6 +204,13 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
           currentWeight={localCurrentWeight}
         />
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        title="알림"
+        message="저장되었습니다."
+        onConfirm={() => setIsModalOpen(false)}
+      />
     </div>
   )
 }
