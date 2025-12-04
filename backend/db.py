@@ -40,6 +40,8 @@ def get_conn():
     """
     conn = connection_pool.getconn()
     try:
+        with conn.cursor() as cur:
+            cur.execute("SET TIME ZONE 'Asia/Seoul'")
         yield conn
         conn.commit()
     except Exception:
