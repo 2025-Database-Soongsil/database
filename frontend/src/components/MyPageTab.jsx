@@ -4,7 +4,24 @@ import './MyPageTab.css' // CSS 파일 임포트
 
 
 
-const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWeight, onLocalChange, onSave, gender, isPregnant, onPregnancyChange, lastPeriodDate, dueDate, onDateChange }) => {
+const ProfileForm = ({
+  nickname,
+  onNicknameChange,
+  height,
+  preWeight,
+  currentWeight,
+  onLocalChange,
+  onSave,
+  gender,
+  isPregnant,
+  onPregnancyChange,
+  lastPeriodDate,
+  dueDate,
+  onDateChange,
+  canAnalyze,
+  onAnalyze,
+  isAnalyzing
+}) => {
   // 값이 입력되지 않았을 경우 0으로 처리하여 계산 오류 방지
   // Local state is used for display, so we keep it as string or number as entered
 
@@ -24,8 +41,10 @@ const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWei
   return (
     <section className="profile-card card-box">
       <div className="profile-header-row">
-        <h3>신체 정보 입력 📝</h3>
-        <button className="primary-btn save-btn" onClick={onSave}>저장</button>
+        <h3>{gender === 'male' ? '내 정보' : '신체 정보 입력 📝'}</h3>
+        {gender === 'female' && (
+          <button className="primary-btn save-btn" onClick={onSave}>저장</button>
+        )}
       </div>
 
       <div className="field-group">
@@ -74,47 +93,59 @@ const ProfileForm = ({ nickname, onNicknameChange, height, preWeight, currentWei
         </div>
       )}
 
-      <div className="field-group">
-        <div className="field-row">
-          <div>
-            <label>키(cm)</label>
-            <input
-              type="number"
-              name="height"
-              min="0"
-              placeholder="-"
-              value={height}
-              onChange={(e) => handleNumberInput('height', e.target.value)}
-              className="styled-input large"
-            />
+      {gender === 'female' && (
+        <>
+          <div className="field-group">
+            <div className="field-row">
+              <div>
+                <label>키(cm)</label>
+                <input
+                  type="number"
+                  name="height"
+                  min="0"
+                  placeholder="-"
+                  value={height}
+                  onChange={(e) => handleNumberInput('height', e.target.value)}
+                  className="styled-input large"
+                />
+              </div>
+              <div>
+                <label>준비 전 체중(kg)</label>
+                <input
+                  type="number"
+                  name="pre"
+                  min="0"
+                  placeholder="-"
+                  value={preWeight}
+                  onChange={(e) => handleNumberInput('pre', e.target.value)}
+                  className="styled-input large"
+                />
+              </div>
+            </div>
           </div>
-          <div>
-            <label>준비 전 체중(kg)</label>
-            <input
-              type="number"
-              name="pre"
-              min="0"
-              placeholder="-"
-              value={preWeight}
-              onChange={(e) => handleNumberInput('pre', e.target.value)}
-              className="styled-input large"
-            />
-          </div>
-        </div>
-      </div>
 
-      <div className="field-group">
-        <label>현재 체중(kg)</label>
-        <input
-          type="number"
-          name="current"
-          min="0"
-          placeholder="-"
-          value={currentWeight}
-          onChange={(e) => handleNumberInput('current', e.target.value)}
-          className="styled-input large"
-        />
-      </div>
+          <div className="field-group">
+            <label>현재 체중(kg)</label>
+            <input
+              type="number"
+              name="current"
+              min="0"
+              placeholder="-"
+              value={currentWeight}
+              onChange={(e) => handleNumberInput('current', e.target.value)}
+              className="styled-input large"
+            />
+          </div>
+
+          <button
+            className={`primary-btn analyze-btn ${canAnalyze && !isAnalyzing ? '' : 'disabled'}`}
+            onClick={onAnalyze}
+            disabled={!canAnalyze || isAnalyzing}
+          >
+            {isAnalyzing ? '분석 중...' : '분석'}
+          </button>
+        </>
+      )}
     </section>
   )
 }
@@ -153,7 +184,42 @@ const WeightAnalysis = ({ height, preWeight, currentWeight }) => {
     </section>
   )
 }
+const AnalysisResultModal = ({ isOpen, onClose, result }) => {
+  if (!isOpen || !result) return null
 
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <section className="report-card card-box" style={{ boxShadow: 'none', padding: 0 }}>
+          <h3>AI 체중 분석 🤖</h3>
+          <div className="stat-row">
+            <div className="stat-item">
+              <span className="label">현재 BMI</span>
+              <strong className="value">{result.bmi}</strong>
+            </div>
+            <div className="stat-item">
+              <span className="label">체중 변화</span>
+              <strong className={`value ${result.gained > 0 ? 'plus' : ''}`}>
+                {result.gained > 0 ? '+' : ''}{result.gained}kg
+              </strong>
+            </div>
+          </div>
+          <div className="advice-box">
+            <p className="target-range">현재 주수 권장 증가: {result.current_week_gain_range}</p>
+            <p className="target-range">전체 기간 권장 증가: {result.total_gain_range}</p>
+            <hr style={{ margin: '10px 0', border: '0', borderTop: '1px solid #eee' }} />
+            <p className="message">{result.message}</p>
+          </div>
+        </section>
+        <div className="modal-actions">
+          <button onClick={onClose} className="primary-btn" style={{ width: '100%', marginTop: '16px' }}>
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 const AddNoteModal = ({ isOpen, onClose, onSave }) => {
   const [content, setContent] = useState('')
   const [visitDate, setVisitDate] = useState('')
@@ -412,6 +478,58 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
     }
   }
 
+  const canAnalyze = gender === 'female' &&
+    isPregnant &&
+    pregnancyDates?.lastPeriodDate &&
+    pregnancyDates?.dueDate &&
+    height &&
+    preWeight &&
+    currentWeight
+
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+
+  const handleAnalyze = async () => {
+    if (!canAnalyze) return
+
+    setIsAnalyzing(true)
+    try {
+      // Calculate weeks
+      const today = new Date()
+      const start = new Date(pregnancyDates.lastPeriodDate)
+      const diffTime = Math.abs(today - start)
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      const weeks = Math.floor(diffDays / 7)
+
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      const res = await fetch(`${API_BASE}/users/analyze-weight`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${JSON.parse(localStorage.getItem('bp-auth')).token}`
+        },
+        body: JSON.stringify({
+          height: Number(height),
+          preWeight: Number(preWeight),
+          currentWeight: Number(currentWeight),
+          weeks: weeks
+        })
+      })
+
+      if (!res.ok) throw new Error('Analysis failed')
+
+      const data = await res.json()
+      setAnalysisResult(data)
+      setShowAnalysisModal(true)
+    } catch (e) {
+      alert('분석 중 오류가 발생했습니다.')
+      console.error(e)
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
   return (
     <div className="mypage-container">
       <header className="mypage-header">
@@ -433,15 +551,16 @@ const MyPageTab = ({ nickname, onNicknameChange, height, preWeight, currentWeigh
         lastPeriodDate={localLastPeriod}
         dueDate={localDueDate}
         onDateChange={handleDateChange}
+        canAnalyze={canAnalyze}
+        onAnalyze={handleAnalyze}
+        isAnalyzing={isAnalyzing}
       />
 
-      <div style={{ marginTop: '20px' }}>
-        <WeightAnalysis
-          height={localHeight}
-          preWeight={localPreWeight}
-          currentWeight={localCurrentWeight}
-        />
-      </div>
+      <AnalysisResultModal
+        isOpen={showAnalysisModal}
+        onClose={() => setShowAnalysisModal(false)}
+        result={analysisResult}
+      />
 
       <HealthTips tips={healthTips} />
 

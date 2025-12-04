@@ -197,7 +197,8 @@ const CalendarTab = ({
   onDeleteTodo,
   supplements, // Legacy prop, can be ignored or removed if unused
   fetchUserSupplements,
-  partnerCalendarSamples
+  partnerCalendarSamples,
+  gender
 }) => {
   const [mySupplements, setMySupplements] = useState([])
 
@@ -224,6 +225,18 @@ const CalendarTab = ({
     '임신 후기': '#E8F5E9'
   }
 
+  // Custom title for male users
+  const displayTitle = gender === 'male' ? '우리 아기 성장 기록 👶' : stage.label
+
+  let displayDesc = stage.description
+  if (gender === 'male') {
+    if (stage.label === '일정을 입력해주세요') {
+      displayDesc = '아내가 임신 정보를 입력하면 아기 성장 기록을 볼 수 있어요!'
+    } else {
+      displayDesc = `현재 아내는 ${stage.label}입니다. 함께 응원해주세요!`
+    }
+  }
+
   return (
     <div className="calendar-layout">
       <section className="stage-card card-box" style={{
@@ -231,8 +244,8 @@ const CalendarTab = ({
         border: `1px solid ${stage.color || '#E0E0E0'}`
       }}>
         <div className="stage-info">
-          <h2>{stage.label}</h2>
-          <p>{stage.description}</p>
+          <h2>{displayTitle}</h2>
+          <p>{displayDesc}</p>
         </div>
 
         <div className="dashboard-grid">

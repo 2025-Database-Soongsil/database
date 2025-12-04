@@ -12,6 +12,22 @@ const requireEnv = (value, name) => {
     return value
 }
 
+const loadGoogleScript = () => {
+    return new Promise((resolve, reject) => {
+        if (window.google && window.google.accounts) {
+            resolve()
+            return
+        }
+        const script = document.createElement('script')
+        script.src = 'https://accounts.google.com/gsi/client'
+        script.async = true
+        script.defer = true
+        script.onload = () => resolve()
+        script.onerror = () => reject(new Error('Google Script load failed'))
+        document.head.appendChild(script)
+    })
+}
+
 export function useAuth() {
     const [loggedIn, setLoggedIn] = useState(false)
     const [user, setUser] = useState({

@@ -71,42 +71,30 @@
 }
 
 
-/* 메인 컨텐츠 (반응형: PC에선 좌우, 모바일에선 상하) */
+/* 메인 컨텐츠 (상하 배치) */
 .calendar-main {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  /* 달력 : 사이드패널 비율 */
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
 .main-content-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  /* Default: 2-column layout for calendar and details panel */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.detail-panel {
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
 /* 태블릿/모바일 대응 */
-@media (max-width: 900px) {
-
-  .calendar-main,
-  .main-content-grid {
-    grid-template-columns: 1fr;
-    /* 1단 레이아웃으로 변경 */
-  }
-
-  .detail-panel {
-    display: grid;
-    grid-template-columns: 1fr;
-    /* 패널 내부 요소 세로 배치 (1단) */
-    gap: 20px;
-  }
-}
-
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .detail-panel {
     grid-template-columns: 1fr;
-    /* 모바일에서는 완전한 1단 */
+    /* 모바일에서는 세로 배치 */
   }
 }
 

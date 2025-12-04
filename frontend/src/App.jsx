@@ -131,6 +131,7 @@ function App() {
               supplements={supplements}
               fetchUserSupplements={fetchUserSupplements}
               partnerCalendarSamples={[]}
+              gender={user.gender}
             />
           )}
 

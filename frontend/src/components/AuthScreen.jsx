@@ -142,28 +142,30 @@ const SignupModal = ({ isOpen, socialInfo, onConfirm, onCancel, onError }) => {
             </div>
           )}
 
-          <div className="input-row">
-            <div className="input-group">
-              <label>키 (cm)</label>
-              <input
-                name="height"
-                type="number"
-                value={form.height}
-                onChange={handleChange}
-                placeholder="선택"
-              />
+          {form.gender === 'female' && (
+            <div className="input-row">
+              <div className="input-group">
+                <label>키 (cm)</label>
+                <input
+                  name="height"
+                  type="number"
+                  value={form.height}
+                  onChange={handleChange}
+                  placeholder="선택"
+                />
+              </div>
+              <div className="input-group">
+                <label>몸무게 (kg)</label>
+                <input
+                  name="weight"
+                  type="number"
+                  value={form.weight}
+                  onChange={handleChange}
+                  placeholder="선택"
+                />
+              </div>
             </div>
-            <div className="input-group">
-              <label>몸무게 (kg)</label>
-              <input
-                name="weight"
-                type="number"
-                value={form.weight}
-                onChange={handleChange}
-                placeholder="선택"
-              />
-            </div>
-          </div>
+          )}
 
           <div className="modal-actions">
             <button type="submit" className="action-btn primary-btn">가입하기</button>
