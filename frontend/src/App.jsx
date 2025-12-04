@@ -22,7 +22,7 @@ function App() {
     user, setUser,
     authToken,
     loggedIn,
-    signup, login, socialLogin, logout, deleteAccount,
+    socialLogin, logout, deleteAccount,
     dates, updateNickname
   } = useAuth()
 
@@ -78,13 +78,6 @@ function App() {
   if (!loggedIn) {
     return (
       <AuthScreen
-        mode="login" // Default mode, internal state handled by AuthScreen if needed or lift up
-        onModeChange={() => { }} // AuthScreen handles its own mode switching usually, or we can add state here if strictly needed
-        onSubmit={(form) => {
-          // Simple heuristic: if form has nickname, it's signup
-          if (form.nickname) return signup(form)
-          else return login(form)
-        }}
         onSocialLogin={socialLogin}
       />
     )
