@@ -44,8 +44,8 @@
 ## 🚀 설치 및 실행 가이드
 
 ### 사전 요구 사항 (Prerequisites)
-- **Node.js**: v18 이상
-- **Python**: 3.9 이상
+- **Node.js**: v24.11.1
+- **Python**: 3.13
 - **PostgreSQL**: 로컬 또는 원격 DB 인스턴스
 
 ### 1. 백엔드 (Backend) 설정
@@ -86,23 +86,42 @@ npm run dev
 
 ## 🔑 환경 변수 (Environment Variables)
 
-`backend/.env` 파일을 생성하고 아래 정보를 입력해야 합니다.
+프로젝트 실행을 위해 아래의 환경 변수 설정이 필요합니다.
+
+### 1. Backend (`backend/.env`)
+
+`backend` 폴더 내에 `.env` 파일을 생성하고 아래 내용을 입력하세요.
 
 ```ini
 # Database
 DATABASE_URL=postgresql://user:password@localhost:5432/dbname
 
-# Authentication (JWT)
-JWT_SECRET=your_jwt_secret_key
-JWT_ALGORITHM=HS256
-
 # OpenAI (챗봇용)
 OPENAI_API_KEY=sk-...
 
-# Social Login (Optional)
+# Google Login
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
+
+# Kakao Login
 KAKAO_CLIENT_ID=...
+KAKAO_CLIENT_SECRET=...
+KAKAO_REDIRECT_URI=http://localhost:5173/login/oauth2/code/kakao
+KAKAO_ADMIN_KEY=...
+```
+
+### 2. Frontend (`frontend/.env`)
+
+`frontend` 폴더 내에 `.env` 파일을 생성하고 아래 내용을 입력하세요.
+
+```ini
+# API Base URL
+VITE_API_BASE_URL=http://127.0.0.1:8000
+
+# Social Login (Frontend)
+VITE_GOOGLE_CLIENT_ID=...
+VITE_KAKAO_CLIENT_ID=...
+VITE_KAKAO_REDIRECT_URI=http://localhost:5173/login/oauth2/code/kakao
 ```
 
 ---
@@ -113,15 +132,44 @@ KAKAO_CLIENT_ID=...
 .
 ├── backend/             # FastAPI 서버
 │   ├── routers/         # API 엔드포인트 (auth, calendar, supplements 등)
-│   ├── services/        # 비즈니스 로직
+│   ├── services/        # 비즈니스 로직 (auth, chatbot 등)
+│   ├── data/            # 데이터 파일 (pregnancy_guide.txt 등)
 │   ├── models.py        # Pydantic 데이터 모델
 │   ├── db.py            # DB 연결 및 쿼리 함수
+│   ├── utils.py         # 유틸리티 함수
 │   └── main.py          # 앱 진입점
 │
 └── frontend/            # React 클라이언트
     ├── src/
     │   ├── components/  # UI 컴포넌트 (Tabs, Forms 등)
-    │   ├── hooks/       # 커스텀 훅 (데이터 로직 분리)
-    │   └── utils/       # 유틸리티 함수
+    │   ├── hooks/       # 커스텀 훅 (useAuth, useCalendar 등)
+    │   ├── utils/       # 유틸리티 함수
+    │   ├── App.jsx      # 메인 앱 컴포넌트
+    │   └── main.jsx     # 진입점
     └── ...
 ```
+
+---
+
+## 👥 팀원 및 기여 (Contributors)
+
+### 양인석
+- 중간 PPT 및 발표
+- 데이터베이스 설계 및 구축
+- Chatbot (RAG) 기능 구현
+
+### 우성한
+- 중간 PPT 발표
+- UX/UI 디자인
+- 프론트엔드 코드 작성
+
+### 우다현
+- PPT 및 다이어그램 제작
+- ERD 작성
+- 백엔드 개발 기여
+
+### 안형민
+- 백엔드 & 프론트엔드 개발
+- AWS RDS 구축
+- 전체 코드 통합 및 시스템 연동
+- Google&Kakao OAuth 구현
