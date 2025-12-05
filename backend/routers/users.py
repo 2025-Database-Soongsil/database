@@ -187,6 +187,12 @@ def delete_user_supplement(id: int, authorization: str = Header(None)):
     return {"ok": True}
 
 
+@router.delete("/supplements/by-supplement/{supplement_id}")
+def delete_user_supplement_by_supplement_id(supplement_id: int, authorization: str = Header(None)):
+    user = _user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="토큰이 필요합니다.")
+
     success = db.delete_user_supplement_by_supplement_id(user["id"], supplement_id)
     if not success:
         raise HTTPException(status_code=404, detail="Supplement not found")
